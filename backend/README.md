@@ -2,6 +2,11 @@
 
 This is the backend API for JWTKit, a comprehensive JWT analysis and security testing tool.
 
+## 👤 Author
+
+- **Eshanized** (m.eshanized@gmail.com)
+- GitHub: [@eshanized](https://github.com/eshanized)
+
 ## Getting Started
 
 1. Install dependencies:
@@ -96,4 +101,4 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4
 - Implement proper key rotation
 
 ## Educational Purpose
-This tool is meant for educational purposes and security research. Only use against your own systems or with explicit permission. 
+This tool is meant for educational purposes and security research. Only use against your own systems or with explicit permission.

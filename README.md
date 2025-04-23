@@ -23,6 +23,11 @@
 
 ---
 
+## 👤 Author
+
+- **Eshanized** (m.eshanized@gmail.com)
+- GitHub: [@eshanized](https://github.com/eshanized)
+
 ## 📋 Project Summary
 
 **JWTKit** is a powerful, web-based offensive security toolkit designed to analyze, manipulate, and exploit JSON Web Tokens (JWTs) — one of the most widely used authentication mechanisms in modern web applications. Built for ethical hackers, penetration testers, and security researchers, JWTKit helps uncover misconfigurations and vulnerabilities in token-based systems.
@@ -187,4 +192,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 <div align="center">
   <p>Made with ❤️ by security enthusiasts, for security enthusiasts</p>
   <sub>Copyright © 2025 - present</sub>
-</div> 
+</div>
