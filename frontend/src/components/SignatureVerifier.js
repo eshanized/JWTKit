@@ -4,9 +4,11 @@ import axios from 'axios';
 
 const SignatureVerifier = ({ token }) => {
   const [secret, setSecret] = useState('');
+  const [publicKey, setPublicKey] = useState('');
   const [algorithm, setAlgorithm] = useState('HS256');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [keysLoading, setKeysLoading] = useState(false);
   const [error, setError] = useState('');
 
   const algorithms = [
@@ -16,10 +18,44 @@ const SignatureVerifier = ({ token }) => {
     { value: 'RS256', label: 'RS256 (RSA + SHA256)' },
     { value: 'RS384', label: 'RS384 (RSA + SHA384)' },
     { value: 'RS512', label: 'RS512 (RSA + SHA512)' },
+    { value: 'PS256', label: 'PS256 (RSA-PSS + SHA256)' },
+    { value: 'PS384', label: 'PS384 (RSA-PSS + SHA384)' },
+    { value: 'PS512', label: 'PS512 (RSA-PSS + SHA512)' },
     { value: 'ES256', label: 'ES256 (ECDSA + SHA256)' },
     { value: 'ES384', label: 'ES384 (ECDSA + SHA384)' },
-    { value: 'ES512', label: 'ES512 (ECDSA + SHA512)' }
+    { value: 'ES512', label: 'ES512 (ECDSA + SHA512)' },
+    { value: 'EdDSA', label: 'EdDSA (Ed25519)' }
   ];
+
+  const isAsymmetric = algorithm => {
+    return algorithm.startsWith('RS') || 
+           algorithm.startsWith('PS') || 
+           algorithm.startsWith('ES') || 
+           algorithm === 'EdDSA';
+  };
+
+  const fetchSampleKeys = async () => {
+    try {
+      setKeysLoading(true);
+      setError('');
+      const response = await axios.get('http://localhost:8000/generate-sample-keys');
+      
+      // Select the appropriate key based on the current algorithm
+      const keys = response.data;
+      if (keys[algorithm]) {
+        if (algorithm.startsWith('HS')) {
+          setSecret(keys[algorithm].secret);
+        } else if (isAsymmetric(algorithm)) {
+          // For verifying, we need the public key
+          setPublicKey(keys[algorithm].public_key);
+        }
+      }
+    } catch (err) {
+      setError(`Failed to fetch sample keys: ${err.message}`);
+    } finally {
+      setKeysLoading(false);
+    }
+  };
 
   const verifySignature = async () => {
     if (!token.trim()) {
@@ -27,8 +63,11 @@ const SignatureVerifier = ({ token }) => {
       return;
     }
 
-    if (!secret.trim()) {
-      setError('Please enter a secret key');
+    const needsSecretOrKey = !isAsymmetric(algorithm) && !secret.trim() ||
+                             isAsymmetric(algorithm) && !publicKey.trim();
+                             
+    if (needsSecretOrKey) {
+      setError('Please enter a key for verification');
       return;
     }
 
@@ -37,11 +76,19 @@ const SignatureVerifier = ({ token }) => {
     setResult(null);
 
     try {
-      const response = await axios.post('http://localhost:8000/verify', {
+      const requestData = {
         token,
-        secret,
         algorithm
-      });
+      };
+      
+      // Add the appropriate key to the request
+      if (isAsymmetric(algorithm)) {
+        requestData.public_key = publicKey.trim();
+      } else {
+        requestData.secret = secret.trim();
+      }
+      
+      const response = await axios.post('http://localhost:8000/verify', requestData);
       
       setResult(response.data);
     } catch (err) {
@@ -81,29 +128,40 @@ const SignatureVerifier = ({ token }) => {
         </Form.Group>
         
         <Form.Group className="mb-3">
-          <Form.Label>Secret Key / Private Key</Form.Label>
+          <Form.Label>
+            {isAsymmetric(algorithm) 
+              ? 'Public Key' 
+              : 'Secret Key'}
+          </Form.Label>
           <InputGroup className="mb-3">
             <Form.Control
               as="textarea"
               rows={3}
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              placeholder={algorithm.startsWith('HS') 
-                ? "Enter your HMAC secret key..." 
-                : "Enter your private key in PEM format..."}
+              value={isAsymmetric(algorithm) ? publicKey : secret}
+              onChange={(e) => isAsymmetric(algorithm) ? setPublicKey(e.target.value) : setSecret(e.target.value)}
+              placeholder={isAsymmetric(algorithm) 
+                ? "Enter your public key in PEM format..." 
+                : "Enter your HMAC secret key..."}
             />
+            <Button 
+              variant="outline-secondary"
+              onClick={fetchSampleKeys}
+              disabled={keysLoading}
+            >
+              {keysLoading ? 'Generating...' : 'Generate Sample Key'}
+            </Button>
           </InputGroup>
           <Form.Text className="text-muted">
-            {algorithm.startsWith('HS')
-              ? "For HMAC algorithms, enter the shared secret key"
-              : "For RSA/ECDSA algorithms, enter the private key in PEM format"}
+            {isAsymmetric(algorithm)
+              ? "For RSA/ECDSA/EdDSA algorithms, enter the public key in PEM format"
+              : "For HMAC algorithms, enter the shared secret key"}
           </Form.Text>
         </Form.Group>
         
         <Button
           variant="primary"
           onClick={verifySignature}
-          disabled={loading || !token.trim() || !secret.trim()}
+          disabled={loading || !token.trim() || (isAsymmetric(algorithm) ? !publicKey.trim() : !secret.trim())}
         >
           {loading ? 'Verifying...' : 'Verify Signature'}
         </Button>
@@ -125,7 +183,7 @@ const SignatureVerifier = ({ token }) => {
               <>
                 <Alert variant="success">
                   <i className="bi bi-check-circle-fill me-2"></i>
-                  Signature is valid! The token was signed with the provided secret key.
+                  Signature is valid! The token was signed with the provided key.
                 </Alert>
                 
                 {result.payload && (

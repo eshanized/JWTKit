@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
+import { Form, Button, Card, Alert, Row, Col, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 
 const PayloadEditor = ({ token, onTokenChange }) => {
@@ -12,11 +12,22 @@ const PayloadEditor = ({ token, onTokenChange }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [jsonError, setJsonError] = useState('');
+  const [keysLoading, setKeysLoading] = useState(false);
 
   const algorithms = [
     { value: 'HS256', label: 'HS256 (HMAC + SHA256)' },
     { value: 'HS384', label: 'HS384 (HMAC + SHA384)' },
     { value: 'HS512', label: 'HS512 (HMAC + SHA512)' },
+    { value: 'RS256', label: 'RS256 (RSA + SHA256)' },
+    { value: 'RS384', label: 'RS384 (RSA + SHA384)' },
+    { value: 'RS512', label: 'RS512 (RSA + SHA512)' },
+    { value: 'PS256', label: 'PS256 (RSA-PSS + SHA256)' },
+    { value: 'PS384', label: 'PS384 (RSA-PSS + SHA384)' },
+    { value: 'PS512', label: 'PS512 (RSA-PSS + SHA512)' },
+    { value: 'ES256', label: 'ES256 (ECDSA + SHA256)' },
+    { value: 'ES384', label: 'ES384 (ECDSA + SHA384)' },
+    { value: 'ES512', label: 'ES512 (ECDSA + SHA512)' },
+    { value: 'EdDSA', label: 'EdDSA (Ed25519)' },
     { value: 'none', label: 'none (No signature)' }
   ];
 
@@ -122,12 +133,20 @@ const PayloadEditor = ({ token, onTokenChange }) => {
     setResult(null);
 
     try {
-      const response = await axios.post('http://localhost:8000/modify', {
+      const requestData = {
         token,
         new_payload: payload,
-        secret: secret.trim() || undefined,
         algorithm
-      });
+      };
+
+      // Add the appropriate key field based on algorithm type
+      if (algorithm.startsWith('HS')) {
+        requestData.secret = secret.trim();
+      } else if (algorithm !== 'none') {
+        requestData.private_key = secret.trim();
+      }
+
+      const response = await axios.post('http://localhost:8000/modify', requestData);
       
       setResult(response.data);
       
@@ -139,6 +158,28 @@ const PayloadEditor = ({ token, onTokenChange }) => {
       setError(`Error generating token: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSampleKeys = async () => {
+    try {
+      setKeysLoading(true);
+      setError('');
+      const response = await axios.get('http://localhost:8000/generate-sample-keys');
+      
+      // Select the appropriate key based on the current algorithm
+      const keys = response.data;
+      if (keys[algorithm]) {
+        if (algorithm.startsWith('HS')) {
+          setSecret(keys[algorithm].secret);
+        } else if (algorithm !== 'none') {
+          setSecret(keys[algorithm].private_key);
+        }
+      }
+    } catch (err) {
+      setError(`Failed to fetch sample keys: ${err.message}`);
+    } finally {
+      setKeysLoading(false);
     }
   };
 
@@ -282,25 +323,46 @@ const PayloadEditor = ({ token, onTokenChange }) => {
                       </option>
                     ))}
                   </Form.Select>
+                  <Form.Text className="text-muted">
+                    Select the algorithm to use for signing the token
+                  </Form.Text>
                 </Form.Group>
               </Col>
               
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>
-                    {algorithm === 'none' ? 'No Secret Needed' : 'Secret Key'}
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder={algorithm === 'none' 
-                      ? 'No secret required for none algorithm' 
-                      : 'Enter your secret key for signing'}
-                    value={secret}
-                    onChange={(e) => setSecret(e.target.value)}
-                    disabled={algorithm === 'none'}
-                  />
-                </Form.Group>
-              </Col>
+              {algorithm !== 'none' && (
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      {algorithm.startsWith('HS') 
+                        ? 'Secret Key' 
+                        : 'Private Key'}
+                    </Form.Label>
+                    <InputGroup>
+                      <Form.Control
+                        as="textarea"
+                        rows={5}
+                        value={secret}
+                        onChange={(e) => setSecret(e.target.value)}
+                        placeholder={algorithm.startsWith('HS') 
+                          ? "Enter your secret key..." 
+                          : "Enter your private key in PEM format..."}
+                      />
+                      <Button 
+                        variant="outline-secondary"
+                        onClick={fetchSampleKeys}
+                        disabled={keysLoading}
+                      >
+                        {keysLoading ? 'Generating...' : 'Generate Sample Key'}
+                      </Button>
+                    </InputGroup>
+                    <Form.Text className="text-muted">
+                      {algorithm.startsWith('HS')
+                        ? "For HMAC algorithms, enter your secret key"
+                        : "For RSA/ECDSA/EdDSA algorithms, enter your private key in PEM format"}
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+              )}
             </Row>
             
             <Button

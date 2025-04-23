@@ -4,33 +4,44 @@ import json
 import base64
 import os
 from datetime import datetime, timedelta
+import jwt
+import uuid
+import hmac
+import hashlib
+import random
+import string
+from cryptography.hazmat.primitives.asymmetric import rsa, ec, ed25519
+from cryptography.hazmat.primitives import serialization
+import logging
 
 # Try to import PyJWT properly
 try:
     import jwt
+    has_jwt = True
 except ImportError:
-    print("Error: PyJWT not installed. Run: pip install pyjwt")
-    # Provide a minimal implementation to prevent crashes during startup
+    # Create a dummy implementation for offline/demo mode
+    has_jwt = False
+    
     class DummyJWT:
         class ExpiredSignatureError(Exception): pass
         class InvalidTokenError(Exception): pass
         
         @staticmethod
         def decode(*args, **kwargs):
-            raise DummyJWT.InvalidTokenError("PyJWT not installed")
-        
+            raise DummyJWT.InvalidTokenError("This is a dummy implementation")
+            
         @staticmethod
         def encode(*args, **kwargs):
-            return "dummy.token.signature"
+            # Just return a fake token
+            return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
     
-    jwt = DummyJWT()
+    jwt = DummyJWT
 
 # Try to import the JWT utilities
 try:
-    from jwt_utils import generate_rsa_key_pair, create_sample_token, create_token_pair
+    from jwt_utils import create_sample_token
     has_jwt_utils = True
 except ImportError:
-    print("Warning: jwt_utils module not found. Key generation features will be disabled.")
     has_jwt_utils = False
 
 app = Flask(__name__)
@@ -38,46 +49,217 @@ CORS(app)
 
 @app.route('/', methods=['GET'])
 def index():
-    return jsonify({"status": "healthy", "service": "JWTKit API"})
+    return jsonify({
+        "status": "running",
+        "message": "JWT Toolkit API is running"
+    })
 
 @app.route('/generate-keys', methods=['POST'])
 def generate_keys():
     """
-    Generate RSA key pair for JWT signing.
+    Generate RSA key pair for asymmetric algorithms.
     """
-    if not has_jwt_utils:
-        return jsonify({"error": "Key generation not available. Make sure cryptography is installed."}), 400
-    
     try:
-        private_key_pem, public_key_pem = generate_rsa_key_pair()
+        key_size = request.json.get('key_size', 2048) if request.json else 2048
+        
+        # Generate RSA key pair
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=key_size
+        )
+        
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        ).decode('utf-8')
+        
+        public_pem = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('utf-8')
         
         return jsonify({
-            "private_key": private_key_pem,
-            "public_key": public_key_pem
+            "private_key": private_pem,
+            "public_key": public_pem,
+            "key_size": key_size,
+            "type": "RSA"
         })
     except Exception as e:
-        return jsonify({"error": f"Error generating keys: {str(e)}"}), 500
+        return jsonify({"error": f"Error generating RSA key pair: {str(e)}"}), 500
 
 @app.route('/generate-sample-tokens', methods=['GET'])
 def generate_sample_tokens():
     """
-    Generate sample JWT tokens for testing.
+    Generate sample JWTs using various algorithms
     """
-    if not has_jwt_utils:
-        return jsonify({"error": "Token generation not available. Make sure jwt_utils is installed."}), 400
-    
     try:
-        hs256_token, rs256_token, secret, private_key, public_key = create_token_pair()
+        # Get sample keys for each algorithm
+        sample_keys = {}
+        
+        # Create HMAC keys
+        sample_keys['HS256'] = {
+            'type': 'HMAC',
+            'algorithm': 'HS256',
+            'secret': base64.b64encode(os.urandom(32)).decode('utf-8'),
+        }
+        
+        sample_keys['HS384'] = {
+            'type': 'HMAC',
+            'algorithm': 'HS384',
+            'secret': base64.b64encode(os.urandom(48)).decode('utf-8'),
+        }
+        
+        sample_keys['HS512'] = {
+            'type': 'HMAC',
+            'algorithm': 'HS512',
+            'secret': base64.b64encode(os.urandom(64)).decode('utf-8'),
+        }
+        
+        # Generate RSA key pair
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048
+        )
+        
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        ).decode('utf-8')
+        
+        public_pem = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('utf-8')
+        
+        # Save RSA keys
+        sample_keys['RS256'] = {
+            'type': 'RSA',
+            'algorithm': 'RS256',
+            'private_key': private_pem,
+            'public_key': public_pem,
+        }
+        
+        # We can reuse RSA keys for PS algorithms
+        sample_keys['PS256'] = {
+            'type': 'RSA-PSS',
+            'algorithm': 'PS256',
+            'private_key': private_pem,
+            'public_key': public_pem,
+        }
+        
+        # Generate EC key pair
+        ec_private_key = ec.generate_private_key(
+            curve=ec.SECP256R1()
+        )
+        
+        ec_private_pem = ec_private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        ).decode('utf-8')
+        
+        ec_public_pem = ec_private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('utf-8')
+        
+        # Save EC keys
+        sample_keys['ES256'] = {
+            'type': 'EC',
+            'algorithm': 'ES256',
+            'private_key': ec_private_pem,
+            'public_key': ec_public_pem,
+        }
+        
+        # Generate Ed25519 key pair
+        ed_private_key = ed25519.Ed25519PrivateKey.generate()
+        
+        ed_private_pem = ed_private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        ).decode('utf-8')
+        
+        ed_public_pem = ed_private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('utf-8')
+        
+        # Save EdDSA keys
+        sample_keys['EdDSA'] = {
+            'type': 'EdDSA',
+            'algorithm': 'EdDSA',
+            'private_key': ed_private_pem,
+            'public_key': ed_public_pem,
+        }
+        
+        # Create a standard payload
+        payload = {
+            "sub": "1234567890",
+            "name": "John Doe",
+            "admin": True,
+            "iat": int(datetime.now().timestamp()),
+            "exp": int((datetime.now() + timedelta(days=1)).timestamp())
+        }
+        
+        # Generate tokens with all algorithms
+        tokens = {}
+        
+        # HMAC algorithms
+        for alg in ['HS256', 'HS384', 'HS512']:
+            tokens[alg] = {
+                'token': jwt.encode(payload, sample_keys[alg]['secret'], algorithm=alg),
+                'algorithm': alg,
+                'secret': sample_keys[alg]['secret'],
+                'payload': payload
+            }
+        
+        # RSA algorithms
+        for alg in ['RS256', 'PS256']:
+            tokens[alg] = {
+                'token': jwt.encode(payload, sample_keys[alg]['private_key'], algorithm=alg),
+                'algorithm': alg,
+                'public_key': sample_keys[alg]['public_key'],
+                'payload': payload
+            }
+        
+        # ECDSA algorithms
+        tokens['ES256'] = {
+            'token': jwt.encode(payload, sample_keys['ES256']['private_key'], algorithm='ES256'),
+            'algorithm': 'ES256',
+            'public_key': sample_keys['ES256']['public_key'],
+            'payload': payload
+        }
+        
+        # EdDSA algorithm
+        tokens['EdDSA'] = {
+            'token': jwt.encode(payload, sample_keys['EdDSA']['private_key'], algorithm='EdDSA'),
+            'algorithm': 'EdDSA',
+            'public_key': sample_keys['EdDSA']['public_key'],
+            'payload': payload
+        }
+        
+        # None algorithm (unsigned token)
+        header = {"alg": "none", "typ": "JWT"}
+        header_encoded = base64.b64encode(json.dumps(header).encode()).decode('utf-8').replace('=', '')
+        payload_encoded = base64.b64encode(json.dumps(payload).encode()).decode('utf-8').replace('=', '')
+        
+        tokens['none'] = {
+            'token': f"{header_encoded}.{payload_encoded}.",
+            'algorithm': 'none',
+            'payload': payload,
+            'warning': 'This token has no signature and should only be used for testing!'
+        }
         
         return jsonify({
-            "hs256_token": hs256_token,
-            "rs256_token": rs256_token,
-            "secret": secret,
-            "private_key": private_key,
-            "public_key": public_key
+            'tokens': tokens,
+            'info': 'Sample tokens for testing JWT verification with different algorithms'
         })
+        
     except Exception as e:
-        return jsonify({"error": f"Error generating tokens: {str(e)}"}), 500
+        return jsonify({"error": f"Error generating sample tokens: {str(e)}"}), 500
 
 @app.route('/decode', methods=['POST'])
 def decode_token():
@@ -239,6 +421,7 @@ def modify_token():
     token = data.get('token', '')
     new_payload = data.get('new_payload', {})
     secret = data.get('secret', '')
+    private_key = data.get('private_key', '')
     algorithm = data.get('algorithm') or "HS256"
     
     try:
@@ -265,17 +448,31 @@ def modify_token():
                 "warning": "This token has no signature and should only be used for testing."
             })
         
-        # For other algorithms, require a secret
-        if not secret:
-            return jsonify({"error": "Secret is required for signing tokens"}), 400
+        # Choose the appropriate key based on algorithm
+        key = None
+        
+        if algorithm.startswith('HS'):
+            if not secret:
+                return jsonify({"error": "Secret is required for HMAC algorithms"}), 400
+            key = secret
+        elif algorithm.startswith(('RS', 'PS', 'ES')) or algorithm == 'EdDSA':
+            if not private_key:
+                return jsonify({"error": "Private key is required for asymmetric algorithms"}), 400
+            key = private_key
+        else:
+            return jsonify({"error": f"Unsupported algorithm: {algorithm}"}), 400
         
         # Create a new token with the modified payload
         new_token = jwt.encode(
             new_payload,
-            secret,
+            key,
             algorithm=algorithm
         )
         
+        # PyJWT >=2.0 returns str, <2.0 returns bytes
+        if isinstance(new_token, bytes):
+            new_token = new_token.decode('utf-8')
+            
         return jsonify({
             "modified_token": new_token,
             "algorithm": algorithm
@@ -370,6 +567,119 @@ def brute_force():
             })
     except Exception as e:
         return jsonify({"error": f"Error in brute force attempt: {str(e)}"}), 400
+
+@app.route('/generate-sample-keys', methods=['GET'])
+def generate_sample_keys():
+    """
+    Generate sample keys for all supported algorithms.
+    Note: These keys are for testing only and should not be used in production.
+    """
+    result = {}
+    
+    # HMAC keys (HS*)
+    result['HS256'] = {
+        'type': 'HMAC',
+        'algorithm': 'HS256',
+        'secret': base64.b64encode(os.urandom(32)).decode('utf-8'),
+        'note': 'Secret for HMAC-SHA256 algorithm'
+    }
+    
+    result['HS384'] = {
+        'type': 'HMAC',
+        'algorithm': 'HS384',
+        'secret': base64.b64encode(os.urandom(48)).decode('utf-8'),
+        'note': 'Secret for HMAC-SHA384 algorithm'
+    }
+    
+    result['HS512'] = {
+        'type': 'HMAC',
+        'algorithm': 'HS512',
+        'secret': base64.b64encode(os.urandom(64)).decode('utf-8'),
+        'note': 'Secret for HMAC-SHA512 algorithm'
+    }
+    
+    # RSA keys (RS*)
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048
+    )
+    
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode('utf-8')
+    
+    public_pem = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    
+    result['RS256'] = {
+        'type': 'RSA',
+        'algorithm': 'RS256',
+        'private_key': private_pem,
+        'public_key': public_pem,
+        'note': 'RSA key pair for RS256 algorithm'
+    }
+    
+    # RSA-PSS keys (PS*)
+    # We can reuse the RSA keys
+    result['PS256'] = {
+        'type': 'RSA-PSS',
+        'algorithm': 'PS256',
+        'private_key': private_pem,
+        'public_key': public_pem,
+        'note': 'RSA key pair for PS256 algorithm (same key as RS256, different padding)'
+    }
+    
+    # ECDSA keys (ES*)
+    ec_private_key = ec.generate_private_key(
+        curve=ec.SECP256R1()
+    )
+    
+    ec_private_pem = ec_private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode('utf-8')
+    
+    ec_public_pem = ec_private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    
+    result['ES256'] = {
+        'type': 'EC',
+        'algorithm': 'ES256',
+        'private_key': ec_private_pem,
+        'public_key': ec_public_pem,
+        'note': 'Elliptic Curve key pair for ES256 algorithm'
+    }
+    
+    # EdDSA keys (Ed25519)
+    ed_private_key = ed25519.Ed25519PrivateKey.generate()
+    
+    ed_private_pem = ed_private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode('utf-8')
+    
+    ed_public_pem = ed_private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    
+    result['EdDSA'] = {
+        'type': 'EdDSA',
+        'algorithm': 'EdDSA',
+        'private_key': ed_private_pem,
+        'public_key': ed_public_pem,
+        'note': 'Ed25519 key pair for EdDSA algorithm'
+    }
+    
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True) 
