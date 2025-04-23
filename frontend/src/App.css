@@ -1,0 +1,108 @@
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+pre {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 10px;
+  overflow-x: auto;
+}
+
+.text-break {
+  word-break: break-all;
+}
+
+footer {
+  margin-top: auto;
+}
+
+.navbar-brand {
+  font-weight: bold;
+}
+
+/* JWT token parts styling */
+.jwt-header {
+  color: #e63946;
+}
+
+.jwt-payload {
+  color: #457b9d;
+}
+
+.jwt-signature {
+  color: #1d3557;
+}
+
+/* Algorithm badges */
+.alg-none {
+  background-color: #e63946 !important;
+}
+
+.alg-hs {
+  background-color: #ee9b00 !important;
+}
+
+.alg-rs {
+  background-color: #2a9d8f !important;
+}
+
+/* Vulnerability scan results */
+.vulnerability-high {
+  border-left: 4px solid #e63946;
+}
+
+.vulnerability-medium {
+  border-left: 4px solid #ee9b00;
+}
+
+.vulnerability-low {
+  border-left: 4px solid #219ebc;
+}
+
+.vulnerability-info {
+  border-left: 4px solid #8ecae6;
+}
+
+/* Custom button styles */
+.btn-tool {
+  margin-right: 5px;
+  margin-bottom: 5px;
+}
+
+/* Form control focus */
+.form-control:focus, .form-select:focus {
+  border-color: #4361ee;
+  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+/* Token input area */
+.token-input {
+  font-family: monospace;
+}
+
+/* Code blocks */
+.code-block {
+  font-family: monospace;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+/* Payload editor */
+.payload-editor {
+  font-family: monospace;
+}
+
+/* Loading indicators */
+.spinner-border-sm {
+  margin-right: 5px;
+}
+
+/* Results area */
+.results-container {
+  margin-top: 20px;
+} 

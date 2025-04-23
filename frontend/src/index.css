@@ -1,0 +1,55 @@
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+  
+  /* General layout */
+  .container {
+    max-width: 1200px !important;
+  }
+  
+  /* For code and token display */
+  .monospace {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.9rem;
+  }
+  
+  /* Smooth transitions */
+  .fade-in {
+    animation: fadeIn 0.5s;
+  }
+  
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 576px) {
+    h2 {
+      font-size: 1.5rem;
+    }
+    
+    pre {
+      font-size: 0.8rem;
+    }
+  }
+  
+  /* Dark mode variables (for future implementation) */
+  :root {
+    --dark-bg: #121212;
+    --dark-surface: #1e1e1e;
+    --dark-primary: #bb86fc;
+    --dark-secondary: #03dac6;
+    --dark-error: #cf6679;
+    --dark-text: #e0e0e0;
+  }
