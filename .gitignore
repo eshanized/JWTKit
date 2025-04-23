@@ -60,3 +60,5 @@ jwks.json
 coverage/
 htmlcov/ 
 test_*.py
+test_jwt.py
+test_signature_verification.py

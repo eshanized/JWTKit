@@ -1,0 +1,35 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle with Gradient -->
+  <circle cx="60" cy="60" r="60" fill="url(#paint0_linear)"/>
+  
+  <!-- Lock Base -->
+  <rect x="36" y="49" width="48" height="42" rx="6" fill="#FFFFFF"/>
+  
+  <!-- Lock Shackle -->
+  <path d="M42 49V37C42 26.5066 50.5066 18 61 18H61C71.4934 18 80 26.5066 80 37V49" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+  
+  <!-- JWT Letters -->
+  <path d="M44 73L47 61H51L48 73H44Z" fill="#4361EE"/>
+  <path d="M52 61H61L60 65H56L55 69H59L58 73H49L52 61Z" fill="#4361EE"/>
+  <path d="M62 61H66L63 73H59L62 61Z" fill="#4361EE"/>
+  <path d="M67 61H76L75 65H71L70 69H74L73 73H64L67 61Z" fill="#4361EE"/>
+  
+  <!-- Key Hole -->
+  <circle cx="60" cy="63" r="6" fill="#4361EE"/>
+  <path d="M60 69V75" stroke="#4361EE" stroke-width="2"/>
+  
+  <!-- Shield Outline for Security -->
+  <path d="M90 38C82.5 42 75 44 60 44C45 44 37.5 42 30 38C30 58 39 72 60 82C81 72 90 58 90 38Z" stroke="#FFFFFF" stroke-width="2" fill="url(#paint1_linear)" fill-opacity="0.3"/>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="paint0_linear" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4361EE"/>
+      <stop offset="1" stop-color="#3F37C9"/>
+    </linearGradient>
+    <linearGradient id="paint1_linear" x1="30" y1="38" x2="90" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4CC9F0"/>
+      <stop offset="1" stop-color="#4361EE"/>
+    </linearGradient>
+  </defs>
+</svg> 
