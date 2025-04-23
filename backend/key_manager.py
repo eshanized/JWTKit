@@ -392,19 +392,24 @@ class KeyManager:
         jwks = {"keys": []}
         for key in self.list_keys():
             jwk = {
-                "kid": key["kid"],
-                "kty": key["type"],
-                "alg": key["alg"],
+                "kid": key.get("kid", ""),
+                "kty": key.get("kty", ""),
+                "alg": key.get("alg", ""),
                 "use": "sig",
                 "key_ops": ["verify"] if not include_private else ["sign", "verify"],
             }
-            if key["type"] in ["rsa", "ec", "ed25519"]:
-                jwk["x5c"] = [key["public_key"]]
-                if include_private:
+            
+            if key.get("kty") in ["RSA", "EC", "OKP"]:
+                if "public_key" in key:
+                    jwk["x5c"] = [key["public_key"]]
+                if include_private and "private_key" in key:
                     jwk["d"] = key["private_key"]
-            elif key["type"] == "hmac":
-                jwk["k"] = key["k"]
+            elif key.get("kty") == "HMAC":
+                if "k" in key:
+                    jwk["k"] = key["k"]
+                    
             jwks["keys"].append(jwk)
+            
         return jwks
 
 

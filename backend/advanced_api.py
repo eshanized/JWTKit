@@ -24,12 +24,76 @@ except ImportError:
 
 # Import our custom modules
 try:
-    from key_manager import get_key_manager
-    from attack_simulator import JWTSecurityTester, JWTTester
+    from key_manager import get_key_manager, KeyManager as ExternalKeyManager
+    from attack_simulator import JWTSecurityTester as ExternalJWTSecurityTester, JWTTester
     has_advanced_modules = True
 except ImportError:
     print("Warning: Advanced modules not found. Some features will be disabled.")
     has_advanced_modules = False
+    
+    # Define fallback classes to prevent errors
+    class KeyManager:
+        """Fallback KeyManager that returns None for all operations"""
+        def export_jwks(self, include_private=False):
+            return {"keys": []}
+            
+        def list_keys(self, include_inactive=False):
+            return []
+            
+        def get_key(self, kid):
+            return None
+            
+        def get_key_for_algorithm(self, algorithm, active_only=True):
+            return None
+            
+        def generate_key(self, key_type, algorithm, **kwargs):
+            return {}
+            
+        def rotate_keys(self, algorithm):
+            return {}
+    
+    # Use proper type annotation to avoid type conflicts
+    ExternalKeyManager = KeyManager  # Alias for type compatibility
+    
+    def get_key_manager():
+        return KeyManager()
+    
+    # Use proper type annotation for the security tester
+    class JWTSecurityTester:
+        @staticmethod
+        def none_algorithm_attack(token):
+            return {"success": False, "error": "Attack simulator not available"}
+            
+        @staticmethod
+        def algorithm_confusion_attack(token, public_key):
+            return {"success": False, "error": "Attack simulator not available"}
+            
+        @staticmethod
+        def signature_removal_attack(token):
+            return {"success": False, "error": "Attack simulator not available"}
+            
+        @staticmethod
+        def key_injection_attack(token):
+            return {"success": False, "error": "Attack simulator not available"}
+            
+        @staticmethod
+        def kid_sql_injection_attack(token):
+            return {"success": False, "error": "Attack simulator not available"}
+            
+        @staticmethod
+        def kid_directory_traversal_attack(token):
+            return {"success": False, "error": "Attack simulator not available"}
+            
+        @staticmethod
+        def brute_force_secret(token, wordlist):
+            return {"success": False, "error": "Attack simulator not available"}
+            
+        @staticmethod
+        def run_all_attacks(token, public_key=None, wordlist=None):
+            return {"success": False, "error": "Attack simulator not available"}
+    
+    # Alias for type compatibility
+    ExternalJWTSecurityTester = JWTSecurityTester
 
 # Setup logging
 logging.basicConfig(
@@ -90,13 +154,13 @@ def list_keys():
             safe_key = {
                 "kid": key.get("kid"),
                 "alg": key.get("alg"),
-                "type": key.get("type"),
+                "type": key.get("kty", "").lower(),  # Return lowercase type for compatibility
                 "created_at": key.get("created_at"),
                 "expires_at": key.get("expires_at")
             }
             
             # Include public key for asymmetric keys
-            if key.get("type") in ["rsa", "ec", "ed25519"]:
+            if key.get("kty") in ["RSA", "EC", "OKP"]:
                 safe_key["public_key"] = key.get("public_key")
                 
             safe_keys.append(safe_key)
@@ -293,26 +357,56 @@ def verify_managed_token():
                 "error": f"Key with ID {kid} not found in key store"
             })
 
+        # Initialize verification result in case we encounter errors
+        verification_result = {
+            "valid": False,
+            "error": "Unknown error occurred"
+        }
+
         # Verify the token using the appropriate key
-        if key_data['type'] == 'hmac':
+        key_type = key_data.get('kty', '').upper()
+        if key_type == 'HMAC':
             key = base64.b64decode(key_data['k'])
-        elif key_data['type'] in ['rsa', 'ec', 'ed25519']:
+        elif key_type in ['RSA', 'EC', 'OKP']:
             key = key_data['public_key']
         else:
-            return jsonify({"error": f"Unsupported key type: {key_data['type']}"}), 400
-
-        # Verify the token
-        decoded = jwt.decode(token, key, algorithms=[key_data['alg']])
-
-        return jsonify({
-            "valid": True,
-            "payload": decoded,
-            "key_info": {
-                "kid": key_data['kid'],
-                "alg": key_data['alg'],
-                "type": key_data['type']
+            key = None
+            verification_result = {
+                "valid": False,
+                "error": f"Unsupported key type: {key_type}",
+                "note": "Cannot verify token with this key type"
             }
-        })
+            
+        # Try to verify
+        if key is not None:
+            if jwt is None:
+                verification_result = {
+                    "valid": False,
+                    "error": "PyJWT library not available",
+                    "note": "Cannot verify token without PyJWT library"
+                }
+            else:
+                try:
+                    decoded = jwt.decode(token, key, algorithms=[header.get('alg')])
+                    
+                    verification_result = {
+                        "valid": True,
+                        "payload": decoded,
+                        "note": "Token verified with a key from the key store",
+                        "key_info": {
+                            "kid": key_data.get('kid', ''),
+                            "alg": key_data.get('alg', ''),
+                            "type": key_type.lower()
+                        }
+                    }
+                except Exception as e:
+                    verification_result = {
+                        "valid": False,
+                        "error": str(e),
+                        "note": "Failed to verify token with the found key"
+                    }
+
+        return jsonify(verification_result)
     except jwt.ExpiredSignatureError:
         return jsonify({
             "valid": False,
@@ -350,19 +444,19 @@ def simulate_attacks():
             result = None
             
             if attack_type == 'none_algorithm':
-                result = JWTSecurityTester.none_algorithm_attack(token)
+                result = ExternalJWTSecurityTester.none_algorithm_attack(token)
             elif attack_type == 'algorithm_confusion':
                 if not public_key:
                     return jsonify({"error": "Public key is required for algorithm confusion attack"}), 400
-                result = JWTSecurityTester.algorithm_confusion_attack(token, public_key)
+                result = ExternalJWTSecurityTester.algorithm_confusion_attack(token, public_key)
             elif attack_type == 'key_injection':
-                result = JWTSecurityTester.key_injection_attack(token)
+                result = ExternalJWTSecurityTester.key_injection_attack(token)
             elif attack_type == 'signature_removal':
-                result = JWTSecurityTester.signature_removal_attack(token)
+                result = ExternalJWTSecurityTester.signature_removal_attack(token)
             elif attack_type == 'kid_sql_injection':
-                result = JWTSecurityTester.kid_sql_injection_attack(token)
+                result = ExternalJWTSecurityTester.kid_sql_injection_attack(token)
             elif attack_type == 'kid_directory_traversal':
-                result = JWTSecurityTester.kid_directory_traversal_attack(token)
+                result = ExternalJWTSecurityTester.kid_directory_traversal_attack(token)
             elif attack_type == 'brute_force':
                 if not wordlist:
                     # Load default wordlist if none provided
@@ -371,7 +465,7 @@ def simulate_attacks():
                             wordlist = [line.strip() for line in f]
                     except FileNotFoundError:
                         return jsonify({"error": "Wordlist is required for brute force attack"}), 400
-                result = JWTSecurityTester.brute_force_secret(token, wordlist)
+                result = ExternalJWTSecurityTester.brute_force_secret(token, wordlist)
             else:
                 return jsonify({"error": f"Unsupported attack type: {attack_type}"}), 400
             
@@ -386,7 +480,7 @@ def simulate_attacks():
                 except FileNotFoundError:
                     wordlist = None
                     
-            result = JWTSecurityTester.run_all_attacks(token, public_key, wordlist)
+            result = ExternalJWTSecurityTester.run_all_attacks(token, public_key, wordlist)
             return jsonify(result)
             
     except Exception as e:
@@ -469,7 +563,7 @@ def audit_token():
         attack_results = {}
 
         # Always try none algorithm attack
-        attack_results["none_algorithm"] = JWTSecurityTester.none_algorithm_attack(token)
+        attack_results["none_algorithm"] = ExternalJWTSecurityTester.none_algorithm_attack(token)
 
         # Try algorithm confusion only for RS256
         if header.get('alg') == 'RS256':
@@ -481,7 +575,7 @@ def audit_token():
             }
 
         # Try signature removal
-        attack_results["signature_removal"] = JWTSecurityTester.signature_removal_attack(token)
+        attack_results["signature_removal"] = ExternalJWTSecurityTester.signature_removal_attack(token)
 
         # 4. Try to verify with managed keys if there's a kid
         verification_result = None
@@ -494,26 +588,42 @@ def audit_token():
 
                 if key_data and key_data['alg'] == header.get('alg'):
                     # Get the appropriate key material
-                    if key_data['type'] == 'hmac':
+                    key_type = key_data.get('kty', '').upper()
+                    if key_type == 'HMAC':
                         key = base64.b64decode(key_data['k'])
-                    elif key_data['type'] in ['rsa', 'ec', 'ed25519']:
+                    elif key_type in ['RSA', 'EC', 'OKP']:
                         key = key_data['public_key']
-
-                    # Try to verify
-                    if jwt is None:
+                    else:
+                        key = None
                         verification_result = {
                             "valid": False,
-                            "error": "PyJWT library not available",
-                            "note": "Cannot verify token without PyJWT library"
+                            "error": f"Unsupported key type: {key_type}",
+                            "note": "Cannot verify token with this key type"
                         }
-                    else:
-                        decoded = jwt.decode(token, key, algorithms=[header.get('alg')])
                         
-                        verification_result = {
-                            "valid": True,
-                            "payload": decoded,
-                            "note": "Token verified with a key from the key store"
-                        }
+                    # Try to verify
+                    if key is not None:
+                        if jwt is None:
+                            verification_result = {
+                                "valid": False,
+                                "error": "PyJWT library not available",
+                                "note": "Cannot verify token without PyJWT library"
+                            }
+                        else:
+                            try:
+                                decoded = jwt.decode(token, key, algorithms=[header.get('alg')])
+                                
+                                verification_result = {
+                                    "valid": True,
+                                    "payload": decoded,
+                                    "note": "Token verified with a key from the key store"
+                                }
+                            except Exception as e:
+                                verification_result = {
+                                    "valid": False,
+                                    "error": str(e),
+                                    "note": "Failed to verify token with the found key"
+                                }
                 else:
                     verification_result = {
                         "valid": False,
