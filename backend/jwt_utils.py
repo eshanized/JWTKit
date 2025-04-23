@@ -85,6 +85,10 @@ def create_sample_token(algorithm='HS256', key=None, expiration_days=1):
         'exp': datetime.utcnow() + timedelta(days=expiration_days)
     }
     
+    # Ensure key is not None before encoding
+    if key is None:
+        raise ValueError("Signing key cannot be None")
+        
     # Create and return the token
     return jwt.encode(payload, key, algorithm=algorithm)
 
@@ -135,6 +139,8 @@ def verify_token(token, key, algorithms=None):
             header, _, _, error = decode_token_parts(token)
             if error:
                 return False, error
+            if header is None:
+                return False, "Could not decode token header"
             algorithms = [header.get('alg', 'HS256')]
         except Exception as e:
             return False, f"Error determining algorithm: {str(e)}"

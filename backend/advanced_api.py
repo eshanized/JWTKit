@@ -122,18 +122,18 @@ def generate_key():
         if key_type == 'hmac':
             bits = int(data.get('bits', 256))
             algorithm = algorithm or "HS256"
-            key_data = key_manager.generate_hmac_key(bits=bits, algorithm=algorithm)
+            key_data = key_manager.generate_key(key_type='hmac', algorithm=algorithm, bits=bits)
         elif key_type == 'rsa':
             key_size = int(data.get('key_size', 2048))
             algorithm = algorithm or "RS256"
-            key_data = key_manager.generate_rsa_key(key_size=key_size, algorithm=algorithm)
+            key_data = key_manager.generate_key(key_type='rsa', key_size=key_size, algorithm=algorithm)
         elif key_type == 'ec':
             curve = data.get('curve', 'P-256')
             algorithm = algorithm or "ES256"
-            key_data = key_manager.generate_ec_key(curve=curve, algorithm=algorithm)
+            key_data = key_manager.generate_key(key_type='ec', curve=curve, algorithm=algorithm)
         elif key_type == 'ed25519':
             algorithm = "EdDSA"
-            key_data = key_manager.generate_ed25519_key()
+            key_data = key_manager.generate_key(key_type='ed25519', algorithm=algorithm)
         else:
             return jsonify({"error": f"Unsupported key type: {key_type}"}), 400
         
@@ -169,7 +169,7 @@ def rotate_key():
     
     try:
         key_manager = get_key_manager()
-        new_key = key_manager.rotate_key(algorithm)
+        new_key = key_manager.rotate_keys(algorithm)
         
         # Filter out sensitive information for API response
         safe_key = {
@@ -197,22 +197,22 @@ def sign_token():
     """Sign a payload with a managed key"""
     if not has_advanced_modules:
         return jsonify({"error": "Key management module not available"}), 501
-    
+
     if jwt is None:
         return jsonify({"error": "PyJWT library not available"}), 501
-    
+
     data = request.json or {}
     payload = data.get('payload')
     algorithm = data.get('algorithm', 'RS256')
     expiration = data.get('expiration_seconds')
     kid = data.get('kid')
-    
+
     if not payload:
         return jsonify({"error": "Payload is required"}), 400
-    
+
     try:
         key_manager = get_key_manager()
-        
+
         # If kid is specified, use that key
         if kid:
             key_data = key_manager.get_key(kid)
@@ -220,27 +220,30 @@ def sign_token():
                 return jsonify({"error": f"Key with ID {kid} not found"}), 404
         else:
             # Otherwise use the active key for the algorithm
-            key_data = key_manager.get_active_key(algorithm)
+            key_data = key_manager.get_key_for_algorithm(algorithm)
             if not key_data:
                 return jsonify({"error": f"No active key found for algorithm {algorithm}"}), 404
-        
+
         # Add standard claims if not present
         if 'iat' not in payload:
-            payload['iat'] = datetime.utcnow()
-            
+            payload['iat'] = int(datetime.utcnow().timestamp())
+
         if expiration and 'exp' not in payload:
-            payload['exp'] = datetime.utcnow() + timedelta(seconds=expiration)
-            
+            payload['exp'] = int((datetime.utcnow() + timedelta(seconds=expiration)).timestamp())
+
         # Get the key material based on type
         if key_data['type'] == 'hmac':
             key = base64.b64decode(key_data['k'])
         else:
             key = key_data['private_key']
-            
+
         # Sign the token
         headers = {'kid': key_data['kid']}
         token = jwt.encode(payload, key, algorithm=key_data['alg'], headers=headers)
-        
+        # PyJWT >=2.0 returns str, <2.0 returns bytes
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+
         return jsonify({
             "token": token,
             "algorithm": key_data['alg'],
@@ -255,41 +258,41 @@ def verify_managed_token():
     """Verify a token using managed keys"""
     if not has_advanced_modules:
         return jsonify({"error": "Key management module not available"}), 501
-    
+
     if jwt is None:
         return jsonify({"error": "PyJWT library not available"}), 501
-    
+
     data = request.json or {}
     token = data.get('token')
-    
+
     if not token:
         return jsonify({"error": "Token is required"}), 400
-    
+
     try:
         # Decode the token header without verification to get kid/alg
         parts = token.split('.')
         if len(parts) != 3:
             return jsonify({"error": "Invalid token format"}), 400
-            
-        header_json = base64.b64decode(parts[0] + '=' * (-len(parts[0]) % 4)).decode('utf-8')
+
+        header_json = base64.urlsafe_b64decode(parts[0] + '=' * (-len(parts[0]) % 4)).decode('utf-8')
         header = json.loads(header_json)
-        
+
         kid = header.get('kid')
         alg = header.get('alg')
-        
+
         if not kid:
             return jsonify({"error": "Token does not contain a key ID (kid)"}), 400
-            
+
         # Get the key from our key manager
         key_manager = get_key_manager()
         key_data = key_manager.get_key(kid)
-        
+
         if not key_data:
             return jsonify({
                 "valid": False,
                 "error": f"Key with ID {kid} not found in key store"
             })
-        
+
         # Verify the token using the appropriate key
         if key_data['type'] == 'hmac':
             key = base64.b64decode(key_data['k'])
@@ -297,10 +300,10 @@ def verify_managed_token():
             key = key_data['public_key']
         else:
             return jsonify({"error": f"Unsupported key type: {key_data['type']}"}), 400
-        
+
         # Verify the token
         decoded = jwt.decode(token, key, algorithms=[key_data['alg']])
-        
+
         return jsonify({
             "valid": True,
             "payload": decoded,
@@ -401,28 +404,28 @@ def audit_token():
     """
     if not has_advanced_modules:
         return jsonify({"error": "Advanced modules not available"}), 501
-    
+
     data = request.json or {}
     token = data.get('token')
-    
+
     if not token:
         return jsonify({"error": "Token is required"}), 400
-    
+
     try:
         # 1. Decode the token
         parts = token.split('.')
         if len(parts) != 3:
             return jsonify({"error": "Invalid token format"}), 400
-            
-        header_json = base64.b64decode(parts[0] + '=' * (-len(parts[0]) % 4)).decode('utf-8')
-        payload_json = base64.b64decode(parts[1] + '=' * (-len(parts[1]) % 4)).decode('utf-8')
-        
+
+        header_json = base64.urlsafe_b64decode(parts[0] + '=' * (-len(parts[0]) % 4)).decode('utf-8')
+        payload_json = base64.urlsafe_b64decode(parts[1] + '=' * (-len(parts[1]) % 4)).decode('utf-8')
+
         header = json.loads(header_json)
         payload = json.loads(payload_json)
-        
+
         # 2. Check for basic vulnerabilities
         vulnerabilities = []
-        
+
         # Check for algorithm vulnerabilities
         if header.get('alg') == 'none':
             vulnerabilities.append({
@@ -430,14 +433,14 @@ def audit_token():
                 "issue": "None Algorithm",
                 "description": "The token uses 'none' algorithm which means signature verification is bypassed."
             })
-        
+
         if header.get('alg', '').startswith('HS'):
             vulnerabilities.append({
                 "severity": "info",
                 "issue": "HMAC Algorithm",
                 "description": "The token uses HMAC which might be vulnerable to brute force if a weak secret is used."
             })
-            
+
         # Check for missing or weak expiration
         if 'exp' not in payload:
             vulnerabilities.append({
@@ -445,29 +448,29 @@ def audit_token():
                 "issue": "No Expiration",
                 "description": "The token does not have an expiration time (exp claim)."
             })
-            
+
         # Check current time against expiration
         if 'exp' in payload:
             exp_time = datetime.fromtimestamp(payload['exp'])
-            if exp_time < datetime.now():
+            if exp_time < datetime.utcnow():
                 vulnerabilities.append({
                     "severity": "info",
                     "issue": "Expired Token",
                     "description": f"Token expired on {exp_time.isoformat()}"
                 })
-            elif exp_time > datetime.now() + timedelta(days=30):
+            elif exp_time > datetime.utcnow() + timedelta(days=30):
                 vulnerabilities.append({
                     "severity": "low",
                     "issue": "Long Expiration",
                     "description": "Token has a very long expiration time (>30 days)."
                 })
-        
+
         # 3. Run selected attacks
         attack_results = {}
-        
+
         # Always try none algorithm attack
         attack_results["none_algorithm"] = JWTSecurityTester.none_algorithm_attack(token)
-        
+
         # Try algorithm confusion only for RS256
         if header.get('alg') == 'RS256':
             # We don't have the public key, but we'll include this for completeness
@@ -476,34 +479,41 @@ def audit_token():
                 "error": "Public key is required for algorithm confusion attack",
                 "note": "This attack is applicable to this token but requires the RSA public key."
             }
-        
+
         # Try signature removal
         attack_results["signature_removal"] = JWTSecurityTester.signature_removal_attack(token)
-        
+
         # 4. Try to verify with managed keys if there's a kid
         verification_result = None
         kid = header.get('kid')
-        
+
         if kid:
             try:
                 key_manager = get_key_manager()
                 key_data = key_manager.get_key(kid)
-                
+
                 if key_data and key_data['alg'] == header.get('alg'):
                     # Get the appropriate key material
                     if key_data['type'] == 'hmac':
                         key = base64.b64decode(key_data['k'])
                     elif key_data['type'] in ['rsa', 'ec', 'ed25519']:
                         key = key_data['public_key']
-                    
+
                     # Try to verify
-                    decoded = jwt.decode(token, key, algorithms=[header.get('alg')])
-                    
-                    verification_result = {
-                        "valid": True,
-                        "payload": decoded,
-                        "note": "Token verified with a key from the key store"
-                    }
+                    if jwt is None:
+                        verification_result = {
+                            "valid": False,
+                            "error": "PyJWT library not available",
+                            "note": "Cannot verify token without PyJWT library"
+                        }
+                    else:
+                        decoded = jwt.decode(token, key, algorithms=[header.get('alg')])
+                        
+                        verification_result = {
+                            "valid": True,
+                            "payload": decoded,
+                            "note": "Token verified with a key from the key store"
+                        }
                 else:
                     verification_result = {
                         "valid": False,
@@ -516,14 +526,14 @@ def audit_token():
                     "error": str(e),
                     "note": "Error occurred during verification attempt"
                 }
-        
+
         # 5. Compile the audit report
         successful_attacks = [k for k, v in attack_results.items() if v.get("success", False)]
         vulnerability_score = len(vulnerabilities) * 10 + len(successful_attacks) * 15
-        
+
         # Cap the score at 100
         vulnerability_score = min(vulnerability_score, 100)
-        
+
         audit_report = {
             "token_info": {
                 "header": header,
@@ -537,7 +547,7 @@ def audit_token():
             },
             "verification": verification_result,
             "risk_score": vulnerability_score,
-            "risk_level": "Critical" if vulnerability_score > 80 else 
+            "risk_level": "Critical" if vulnerability_score > 80 else
                          "High" if vulnerability_score > 60 else
                          "Medium" if vulnerability_score > 40 else
                          "Low" if vulnerability_score > 20 else
@@ -551,9 +561,9 @@ def audit_token():
                 "Validate token algorithm and type before verification"
             ]
         }
-        
+
         return jsonify(audit_report)
-            
+
     except Exception as e:
         logger.error(f"Error in token audit: {str(e)}")
         return jsonify({"error": f"Token audit failed: {str(e)}"}), 500

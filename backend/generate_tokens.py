@@ -16,8 +16,9 @@ try:
 except ImportError:
     print("Warning: jwt_utils not found. RSA key generation disabled.")
     
-    def generate_rsa_key_pair():
-        return None, None
+    def generate_rsa_key_pair() -> tuple[str, str]:
+        """Fallback function when jwt_utils is not available"""
+        return "", ""
 
 def generate_secure_secret(length=32):
     """Generate a cryptographically secure random string"""

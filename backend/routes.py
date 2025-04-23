@@ -1,9 +1,5 @@
 from flask import Blueprint, request, jsonify
-from attack_simulator import (
-    none_algorithm_attack, algorithm_confusion_attack, jwt_brute_force,
-    kid_injection_attack, jwks_spoofing, token_expiration_bypass,
-    test_token_against_endpoint
-)
+from attack_simulator import JWTSecurityTester
 
 api = Blueprint('api', __name__)
 
@@ -14,7 +10,7 @@ def none_algorithm():
         return jsonify({"error": "Token is required"}), 400
     
     try:
-        result = none_algorithm_attack(data['token'])
+        result = JWTSecurityTester.none_algorithm_attack(data['token'])
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -26,7 +22,7 @@ def algorithm_confusion():
         return jsonify({"error": "Token and public key are required"}), 400
     
     try:
-        result = algorithm_confusion_attack(data['token'], data['public_key'])
+        result = JWTSecurityTester.algorithm_confusion_attack(data['token'], data['public_key'])
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -38,7 +34,7 @@ def brute_force():
         return jsonify({"error": "Token and wordlist are required"}), 400
     
     try:
-        result = jwt_brute_force(data['token'], data['wordlist'])
+        result = JWTSecurityTester.jwt_brute_force(data['token'], data['wordlist'])
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -50,7 +46,7 @@ def kid_injection():
         return jsonify({"error": "Token and kid_value are required"}), 400
     
     try:
-        result = kid_injection_attack(data['token'], data['kid_value'])
+        result = JWTSecurityTester.kid_injection_attack(data['token'], data['kid_value'])
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -62,7 +58,7 @@ def jwks_spoof():
         return jsonify({"error": "Token is required"}), 400
     
     try:
-        result = jwks_spoofing(data['token'])
+        result = JWTSecurityTester.jwks_spoofing(data['token'])
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -74,7 +70,7 @@ def expiration_bypass():
         return jsonify({"error": "Token is required"}), 400
     
     try:
-        result = token_expiration_bypass(data['token'])
+        result = JWTSecurityTester.token_expiration_bypass(data['token'])
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -86,7 +82,7 @@ def test_endpoint():
         return jsonify({"error": "Token, URL, and method are required"}), 400
     
     try:
-        result = test_token_against_endpoint(data['token'], data['url'], data['method'])
+        result = JWTSecurityTester.test_token_against_endpoint(data['token'], data['url'], data['method'])
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500 

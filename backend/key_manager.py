@@ -62,7 +62,7 @@ class KeyManager:
                 }
             }
     
-    def _save_keys(self, keys: Dict[str, Any] = None) -> bool:
+    def _save_keys(self, keys: Optional[Dict[str, Any]] = None) -> bool:
         """Save keys to storage"""
         try:
             if keys is None:
@@ -383,6 +383,30 @@ class KeyManager:
         
         return {"keys": jwks_keys}
 
+    def export_jwks(self, include_private=False):
+        """
+        Export keys in JWKS format.
+        :param include_private: Whether to include private keys in the export.
+        :return: A dictionary representing the JWKS.
+        """
+        jwks = {"keys": []}
+        for key in self.list_keys():
+            jwk = {
+                "kid": key["kid"],
+                "kty": key["type"],
+                "alg": key["alg"],
+                "use": "sig",
+                "key_ops": ["verify"] if not include_private else ["sign", "verify"],
+            }
+            if key["type"] in ["rsa", "ec", "ed25519"]:
+                jwk["x5c"] = [key["public_key"]]
+                if include_private:
+                    jwk["d"] = key["private_key"]
+            elif key["type"] == "hmac":
+                jwk["k"] = key["k"]
+            jwks["keys"].append(jwk)
+        return jwks
+
 
 # Singleton instance
 _instance = None
@@ -392,4 +416,4 @@ def get_key_manager() -> KeyManager:
     global _instance
     if _instance is None:
         _instance = KeyManager()
-    return _instance 
+    return _instance

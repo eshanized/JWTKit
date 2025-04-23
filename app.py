@@ -17,8 +17,11 @@ def decode_token():
     """
     Decode a JWT and return its components.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
     
     try:
         # Split the token into parts
@@ -47,10 +50,16 @@ def verify_token():
     """
     Verify a JWT signature using the provided secret.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
     secret = data.get('secret')
     algorithm = data.get('algorithm') or "HS256"  # Default to HS256 if not specified
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    
+    if not secret:
+        return jsonify({"error": "Secret is required"}), 400
     
     try:
         # Verify the token
@@ -80,9 +89,12 @@ def scan_vulnerabilities():
     """
     Scan a JWT for common vulnerabilities and misconfigurations.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
     vulnerabilities = []
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
     
     try:
         # Split and decode parts
@@ -168,11 +180,17 @@ def modify_token():
     """
     Modify a JWT payload and re-sign it.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
-    new_payload = data.get('new_payload')
+    new_payload = data.get('new_payload', {})
     secret = data.get('secret')
     algorithm = data.get('algorithm') or "HS256"
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    
+    if not new_payload:
+        return jsonify({"error": "New payload is required"}), 400
     
     try:
         # First decode the token to extract the header
@@ -221,9 +239,15 @@ def algorithm_confusion():
     """
     Attempt an algorithm confusion attack (RS256 to HS256).
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
     public_key = data.get('public_key')
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    
+    if not public_key:
+        return jsonify({"error": "Public key is required"}), 400
     
     try:
         # First decode the token to extract parts
@@ -268,12 +292,15 @@ def brute_force():
     Attempt to brute force a JWT secret.
     Optimized for real-world token testing.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
-    wordlist = data.get('wordlist')
+    wordlist = data.get('wordlist', [])
     
-    if not token or not wordlist:
-        return jsonify({"error": "Token and wordlist are required"}), 400
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    
+    if not wordlist:
+        return jsonify({"error": "Wordlist is required"}), 400
     
     try:
         parts = token.split('.')
@@ -333,9 +360,12 @@ def key_injection():
     """
     Test for key ID (kid) injection vulnerability.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
     kid_value = data.get('kid_value', '../../../dev/null')
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
     
     try:
         # First decode the token to extract parts
@@ -373,8 +403,11 @@ def jwks_spoofing():
     from cryptography.hazmat.backends import default_backend
     import time
     
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
     
     try:
         # First decode the token to extract parts
@@ -432,8 +465,11 @@ def token_expiration_bypass():
     """
     Demonstrate token expiration bypass techniques.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
     
     try:
         # First decode the token to extract parts
@@ -478,11 +514,14 @@ def test_endpoint():
     """
     Test a token against a specified endpoint.
     """
-    data = request.json
+    data = request.json or {}
     token = data.get('token')
     url = data.get('url')
     method = data.get('method', 'GET').upper()
     
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+        
     if not url:
         return jsonify({"error": "URL is required"}), 400
         
