@@ -241,12 +241,12 @@ class JWTSecurityTester:
             header['alg'] = 'RS256'
             header['kid'] = kid
             
-            # Create a new token signed with the private key
+            # Convert private key to PEM string format for JWT encoding
             private_key_pem = private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
-            )
+            ).decode('utf-8')  # Convert bytes to string
             
             forged_token = jwt.encode(payload, private_key_pem, algorithm='RS256', headers=header)
             
@@ -261,7 +261,7 @@ class JWTSecurityTester:
                 "success": False,
                 "error": str(e)
             }
-    
+
     @staticmethod
     def token_expiration_bypass(token):
         """Bypass token expiration by removing or extending exp claim"""
@@ -304,6 +304,9 @@ class JWTSecurityTester:
     def test_token_against_endpoint(token, url, method):
         """Test a JWT token against a specified endpoint"""
         try:
+            # Initialize response as None
+            response = None
+            
             # Validate method
             method = method.upper()
             if method not in ['GET', 'POST', 'PUT', 'DELETE']:
@@ -326,6 +329,12 @@ class JWTSecurityTester:
                 response = requests.put(url, headers=headers, json={}, timeout=10)
             elif method == 'DELETE':
                 response = requests.delete(url, headers=headers, timeout=10)
+            
+            if response is None:
+                return {
+                    "success": False,
+                    "error": "Failed to make request"
+                }
             
             # Return response details
             return {
@@ -521,13 +530,12 @@ class JWTSecurityTester:
             # Try each word in the wordlist
             for word in wordlist:
                 try:
-                    # Convert to bytes if it's a string
-                    secret = word
-                    if isinstance(secret, str):
-                        secret = secret.encode('utf-8')
+                    # Convert to string if it's bytes
+                    if isinstance(word, bytes):
+                        word = word.decode('utf-8')
                         
                     # Try to verify with this secret
-                    decoded = jwt.decode(token, secret, algorithms=[algorithm])
+                    decoded = jwt.decode(token, word, algorithms=[algorithm])
                     
                     # If we get here without an exception, we found the secret
                     return {
@@ -733,8 +741,15 @@ class JWTTester:
                 "kid": kid
             }
             
+            # Convert private key to PEM format for JWT encoding
+            private_key_pem = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            ).decode('utf-8')
+            
             # Create token with our private key
-            token = jwt.encode(payload, private_key, algorithm="RS256", headers=header)
+            token = jwt.encode(payload, private_key_pem, algorithm="RS256", headers=header)
             
             # Create the JWKS
             jwks = {
@@ -833,4 +848,4 @@ class JWTTester:
                 "status_code": 0,
                 "error": str(e),
                 "success": False
-            } 
+            }
