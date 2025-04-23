@@ -37,7 +37,7 @@ class JWTSecurityTester:
         """
         self.logger = logging.getLogger("security_tester")
         self.key_manager = key_manager
-        
+    
     @staticmethod
     def decode_token_parts(token):
         """Decode token without verification to extract header and payload"""
@@ -49,7 +49,7 @@ class JWTSecurityTester:
         payload = json.loads(base64.b64decode(parts[1] + '==' * (-len(parts[1]) % 4)).decode('utf-8'))
         
         return header, payload, parts[2]  # header, payload, signature
-        
+    
     @staticmethod
     def none_algorithm_attack(token):
         """Test token against the none algorithm vulnerability"""
@@ -349,7 +349,7 @@ class JWTSecurityTester:
                 "success": False,
                 "error": str(e)
             }
-    
+
     @staticmethod
     def signature_removal_attack(token):
         """Test signature removal vulnerability by removing the signature portion"""
