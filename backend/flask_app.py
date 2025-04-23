@@ -30,14 +30,17 @@ CORS(app)
 try:
     from backend.advanced_api import register_advanced_api
     has_advanced_api = True
+    register_advanced_api_fn = register_advanced_api
 except ImportError:
     try:
         # Try relative import if the first one fails
         from advanced_api import register_advanced_api
         has_advanced_api = True
+        register_advanced_api_fn = register_advanced_api
     except ImportError:
         logger.warning("Advanced API module not found. Advanced features will be disabled.")
         has_advanced_api = False
+        register_advanced_api_fn = None
 
 # Setup config
 app.config.update(
@@ -354,11 +357,13 @@ except ImportError:
     logger.warning("Could not import attack routes from app.py")
 
 # Register advanced API if available
-if has_advanced_api:
-    register_advanced_api(app)
+if has_advanced_api and register_advanced_api_fn is not None:
+    register_advanced_api_fn(app)
     logger.info("Advanced API registered successfully")
+else:
+    logger.warning("Advanced API not available - skipping registration")
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 8000))
     logger.info(f"Starting JWTKit API on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG']) 
+    app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG'])
