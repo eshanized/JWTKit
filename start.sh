@@ -45,8 +45,11 @@ fi
 
 # Start backend server in the background
 echo -e "${GREEN}Starting backend server...${NC}"
-# Use main.py if it exists, otherwise use flask_app.py as fallback
-if [ -f "backend/main.py" ]; then
+# Use the integrated server for more complete functionality
+if [ -f "run_jwtkit.py" ]; then
+    python run_jwtkit.py &
+# Fallback to other server scripts if available
+elif [ -f "backend/main.py" ]; then
     python backend/main.py &
 else
     python backend/flask_app.py &

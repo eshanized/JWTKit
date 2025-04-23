@@ -28,11 +28,16 @@ CORS(app)
 
 # Import our advanced API
 try:
-    from advanced_api import register_advanced_api
+    from backend.advanced_api import register_advanced_api
     has_advanced_api = True
 except ImportError:
-    logger.warning("Advanced API module not found. Advanced features will be disabled.")
-    has_advanced_api = False
+    try:
+        # Try relative import if the first one fails
+        from advanced_api import register_advanced_api
+        has_advanced_api = True
+    except ImportError:
+        logger.warning("Advanced API module not found. Advanced features will be disabled.")
+        has_advanced_api = False
 
 # Setup config
 app.config.update(
@@ -336,15 +341,24 @@ def generate_token():
         logger.error(f"Error generating token: {str(e)}")
         return jsonify({"error": f"Failed to generate token: {str(e)}"}), 500
 
-# Register advanced API endpoints if available
+# Import and register routes from app.py
+try:
+    from app import algorithm_confusion, brute_force
+    
+    # Register routes directly
+    app.route('/algorithm-confusion', methods=['POST'])(algorithm_confusion)
+    app.route('/brute-force', methods=['POST'])(brute_force)
+    
+    logger.info("Additional attack routes registered from app.py")
+except ImportError:
+    logger.warning("Could not import attack routes from app.py")
+
+# Register advanced API if available
 if has_advanced_api:
     register_advanced_api(app)
-    logger.info("Advanced API endpoints registered")
+    logger.info("Advanced API registered successfully")
 
-if __name__ == '__main__':
-    # Get port from environment or use default
-    port = int(os.environ.get('PORT', 5000))
-    
-    # Start the Flask app
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 8000))
     logger.info(f"Starting JWTKit API on port {port}")
     app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG']) 
