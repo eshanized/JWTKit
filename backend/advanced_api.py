@@ -24,8 +24,7 @@ except ImportError:
 
 # Import our custom modules
 try:
-    from key_manager import get_key_manager, KeyManager as ExternalKeyManager
-    from attack_simulator import JWTSecurityTester as ExternalJWTSecurityTester, JWTTester
+    from key_manager import get_key_manager
     has_advanced_modules = True
 except ImportError:
     print("Warning: Advanced modules not found. Some features will be disabled.")
@@ -51,9 +50,6 @@ except ImportError:
             
         def rotate_keys(self, algorithm):
             return {}
-    
-    # Use proper type annotation to avoid type conflicts
-    ExternalKeyManager = KeyManager  # Alias for type compatibility
     
     def get_key_manager():
         return KeyManager()
@@ -295,9 +291,9 @@ def sign_token():
         if expiration and 'exp' not in payload:
             payload['exp'] = int((datetime.utcnow() + timedelta(seconds=expiration)).timestamp())
 
-        # Get the key material based on type
+        # Get the key material and convert to string if needed
         if key_data['type'] == 'hmac':
-            key = base64.b64decode(key_data['k'])
+            key = base64.b64decode(key_data['k']).decode('utf-8')  # Convert bytes to string
         else:
             key = key_data['private_key']
 
@@ -363,10 +359,10 @@ def verify_managed_token():
             "error": "Unknown error occurred"
         }
 
-        # Verify the token using the appropriate key
+        # Handle key based on type and convert to string if needed
         key_type = key_data.get('kty', '').upper()
         if key_type == 'HMAC':
-            key = base64.b64decode(key_data['k'])
+            key = base64.b64decode(key_data['k']).decode('utf-8')  # Convert bytes to string
         elif key_type in ['RSA', 'EC', 'OKP']:
             key = key_data['public_key']
         else:
