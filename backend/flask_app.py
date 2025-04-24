@@ -49,6 +49,9 @@ app.config.update(
     DEBUG=os.environ.get('DEBUG', 'False').lower() == 'true'
 )
 
+# In-memory storage for token history (for simplicity)
+token_history = []
+
 @app.route('/')
 def index():
     """Root endpoint that returns API info"""
@@ -344,6 +347,37 @@ def generate_token():
         logger.error(f"Error generating token: {str(e)}")
         return jsonify({"error": f"Failed to generate token: {str(e)}"}), 500
 
+@app.route('/history', methods=['GET'])
+def get_history():
+    """Return the token history"""
+    return jsonify(token_history)
+
+@app.route('/history', methods=['POST'])
+def add_to_history():
+    """Add a token to the history"""
+    data = request.json or {}
+    token = data.get('token')
+    
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    
+    history_entry = {
+        "id": len(token_history) + 1,
+        "value": token,
+        "operation": data.get('operation', 'manual'),
+        "status": data.get('status', 'unknown'),
+        "notes": data.get('notes', ''),
+        "timestamp": data.get('timestamp', int(datetime.utcnow().timestamp() * 1000))
+    }
+    
+    # Avoid duplicates by checking if the token already exists
+    for entry in token_history:
+        if entry["value"] == token:
+            return jsonify({"status": "Token already in history", "id": entry["id"]}), 200
+    
+    token_history.append(history_entry)
+    return jsonify({"status": "Token added to history", "id": history_entry["id"]}), 201
+
 # Import and register routes from app.py
 try:
     from app import algorithm_confusion, brute_force
@@ -363,7 +397,7 @@ if has_advanced_api and register_advanced_api_fn is not None:
 else:
     logger.warning("Advanced API not available - skipping registration")
 
-if __name__ == "__main__":
+# Run the Flask app when script is executed directly
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
-    logger.info(f"Starting JWTKit API on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG'])
+    app.run(host='0.0.0.0', port=port, debug=True)

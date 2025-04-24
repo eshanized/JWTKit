@@ -41,6 +41,8 @@ function App() {
       setTokenHistory(response.data);
     } catch (error) {
       console.error('Failed to fetch token history:', error);
+      // Don't overwrite history if we failed to fetch new data
+      // This preserves any locally-added tokens when server is unavailable
     }
   };
 
@@ -60,14 +62,34 @@ function App() {
 
   const addToHistory = async (token, operation = 'manual', status = 'unknown', notes = '') => {
     try {
-      await axios.post('http://localhost:8000/history', {
+      const historyEntry = {
         token,
         operation,
         status,
         notes,
         timestamp: Date.now()
-      });
-      await fetchTokenHistory();
+      };
+      
+      // Try to save to backend
+      try {
+        await axios.post('http://localhost:8000/history', historyEntry);
+        await fetchTokenHistory();
+      } catch (error) {
+        console.error('Failed to save to backend:', error);
+        // Fallback: Add to local state if backend fails
+        const localEntry = {
+          id: Date.now(),
+          value: token,
+          ...historyEntry
+        };
+        setTokenHistory(prevHistory => {
+          // Check if token already exists in history
+          if (!prevHistory.some(entry => entry.value === token)) {
+            return [...prevHistory, localEntry];
+          }
+          return prevHistory;
+        });
+      }
       
       if (operation !== 'manual') {
         addToast(
@@ -76,13 +98,15 @@ function App() {
           'info'
         );
       }
+      return true;
     } catch (error) {
+      console.error('History error:', error);
       addToast(
-        'Error',
-        'Failed to add token to history: ' + error.message,
-        'danger'
+        'Warning',
+        'Token saved locally. Server sync failed: ' + (error.message || 'Network error'),
+        'warning'
       );
-      throw error;
+      return false;
     }
   };
 
@@ -90,11 +114,11 @@ function App() {
     setJwtToken(token);
     if (token) {
       addToHistory(token, operation, status, notes)
-        .then(() => {
-          addToast('Token Updated', 'Token has been successfully updated and added to history', 'success');
-        })
-        .catch(error => {
-          addToast('Error', 'Failed to update token history', 'danger');
+        .then((success) => {
+          if (success) {
+            addToast('Token Updated', 'Token has been processed and saved to history', 'success');
+          }
+          // If not success, a warning toast is already shown by addToHistory
         });
     }
   };

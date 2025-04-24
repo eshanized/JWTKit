@@ -37,24 +37,14 @@ fi
 # Activate virtual environment and install dependencies
 echo -e "${BLUE}Installing backend dependencies...${NC}"
 source flask_env/bin/activate
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
-else
-    pip install flask flask-cors pyjwt
-fi
+pip install werkzeug==2.2.3 flask==2.2.3 flask-cors==3.0.10 pyjwt==2.6.0 python-multipart==0.0.6 cryptography==40.0.2 requests==2.30.0 sqlalchemy==1.4.40 passlib==1.7.4 python-dotenv==1.0.0
 
 # Start backend server in the background
 echo -e "${GREEN}Starting backend server...${NC}"
-# Use the integrated server for more complete functionality
-if [ -f "run_jwtkit.py" ]; then
-    python run_jwtkit.py &
-# Fallback to other server scripts if available
-elif [ -f "backend/main.py" ]; then
-    python backend/main.py &
-else
-    python backend/flask_app.py &
-fi
+cd backend
+python flask_app.py &
 BACKEND_PID=$!
+cd ..
 
 # Install frontend dependencies
 echo -e "${BLUE}Installing frontend dependencies...${NC}"

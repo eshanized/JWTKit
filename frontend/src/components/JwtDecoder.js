@@ -50,7 +50,12 @@ const JwtDecoder = ({ token, onTokenChange }) => {
         const response = await axios.post('http://localhost:8000/decode', { token });
         setHeader(response.data.header);
         setPayload(response.data.payload);
-        setSignature(response.data.signature);
+        // Check if signature is an object and extract the raw value
+        if (response.data.signature && typeof response.data.signature === 'object') {
+          setSignature(response.data.signature.raw || '');
+        } else {
+          setSignature(response.data.signature || '');
+        }
       } catch (err) {
         // Fallback to local decoding if backend is not available
         localDecode();
@@ -179,6 +184,11 @@ const JwtDecoder = ({ token, onTokenChange }) => {
                 <Card.Body>
                   <div className="text-break">
                     <small>{signature}</small>
+                    {typeof signature === 'object' && (
+                      <div className="mt-2">
+                        <Badge bg="info">Size: {signature.size_bytes} bytes</Badge>
+                      </div>
+                    )}
                   </div>
                 </Card.Body>
               </Card>
