@@ -12,6 +12,7 @@ import AttackSimulator from './components/AttackSimulator';
 import TokenHistory from './components/TokenHistory';
 import AuditLog from './components/AuditLog';
 import ToastContainer from './components/ToastContainer';
+import ForexCalculator from './components/ForexCalculator';
 import axios from 'axios';
 
 // Add Font Awesome CSS (add this to your public/index.html)
@@ -121,6 +122,7 @@ function App() {
     { id: 'tester', label: 'Token Tester', icon: 'fa-solid fa-vial', notification: false },
     { id: 'bruteforce', label: 'Brute Force', icon: 'fa-solid fa-hammer', notification: false },
     { id: 'simulator', label: 'Attack Simulator', icon: 'fa-solid fa-bug', notification: true },
+    { id: 'forex', label: 'Forex Calculator', icon: 'fa-solid fa-dollar-sign', notification: false },
     { id: 'audit', label: 'Audit Log', icon: 'fa-solid fa-clipboard-list', notification: false }
   ];
 
@@ -142,6 +144,8 @@ function App() {
         return <BruteForceEngine token={jwtToken} />;
       case 'simulator':
         return <AttackSimulator token={jwtToken} />;
+      case 'forex':
+        return <ForexCalculator />;
       case 'audit':
         return <AuditLog />;
       default:
