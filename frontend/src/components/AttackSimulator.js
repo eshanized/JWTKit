@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Card, Form, Button, Alert, Tabs, Tab, Spinner, Container, Row, Col } from 'react-bootstrap';
+import HeaderInjectionAttacks from './HeaderInjectionAttacks';
+import TokenFuzzer from './TokenFuzzer';
+import axios from 'axios';
 
-const AttackSimulator = ({ token }) => {
+const AttackSimulator = ({ token, addToast }) => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -16,57 +19,76 @@ const AttackSimulator = ({ token }) => {
 
   const API_URL = 'http://localhost:8000';
 
+  const logAttackAttempt = async (action, details, severity, success, token) => {
+    try {
+      await axios.post('http://localhost:8000/audit-log', {
+        action,
+        details,
+        severity,
+        success,
+        token
+      });
+    } catch (err) {
+      console.error('Failed to log attack attempt:', err);
+    }
+  };
+
   const executeAttack = async (attackType, payload) => {
     setLoading(true);
     setError(null);
     setResult(null);
 
-    // Map attack types to their proper API endpoints
     const endpoints = {
-      'none_algorithm_attack': '/modify',
-      'algorithm_confusion_attack': '/algorithm-confusion',
-      'jwt_brute_force': '/brute-force',
-      'kid_injection_attack': '/key-injection',
-      'jwks_spoofing': '/jwks-spoofing',
-      'token_expiration_bypass': '/token-expiration-bypass',
-      'test_token_against_endpoint': '/test-endpoint'
+      'none_algorithm_attack': '/attacks/none_algorithm',
+      'algorithm_confusion_attack': '/attacks/algorithm_confusion',
+      'jwt_brute_force': '/attacks/brute_force',
+      'kid_injection_attack': '/attacks/kid_injection',
+      'jwks_spoofing': '/attacks/jwks_spoof',
+      'token_expiration_bypass': '/attacks/expiration_bypass',
+      'test_token_against_endpoint': '/attacks/test_endpoint'
     };
 
-    // Get the endpoint URL
-    const endpoint = endpoints[attackType] || attackType;
-
     try {
-      // Prepare the payload
-      let requestPayload = payload;
+      const endpoint = endpoints[attackType] || attackType;
+      const response = await axios.post(`http://localhost:8000${endpoint}`, payload);
       
-      // Special handling for none algorithm attack
-      if (attackType === 'none_algorithm_attack') {
-        // For none algorithm, we need to modify the payload format
-        const { token } = payload;
-        requestPayload = {
-          token,
-          new_payload: {},  // Keep the payload as is
-          algorithm: 'none'
-        };
-      }
-
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload),
-      });
-
-      const data = await response.json();
-      
-      if (response.ok) {
-        setResult(data);
+      if (response.data.success) {
+        addToast(
+          'Attack Successful',
+          `${attackType} attack was successful`,
+          'success'
+        );
       } else {
-        setError(data.error || 'An error occurred during the attack simulation');
+        addToast(
+          'Attack Failed',
+          response.data.error || 'Attack did not succeed',
+          'warning'
+        );
       }
+      
+      setResult(response.data);
+      
+      // Log the attack attempt
+      await logAttackAttempt(
+        attackType,
+        response.data.message || 'Attack execution completed',
+        'high',
+        response.data.success,
+        payload.token
+      );
     } catch (err) {
-      setError(`Network error: ${err.message}`);
+      const errorMessage = err.response?.data?.error || err.message;
+      setError(errorMessage);
+      addToast('Error', errorMessage, 'danger');
+      
+      // Log the failed attempt
+      await logAttackAttempt(
+        attackType,
+        `Attack failed: ${errorMessage}`,
+        'high',
+        false,
+        payload.token
+      );
     } finally {
       setLoading(false);
     }
@@ -319,6 +341,14 @@ const AttackSimulator = ({ token }) => {
                 </Card.Body>
               </Card>
             </Tab>
+
+            <Tab eventKey="header_injection" title="Header Injection">
+              <HeaderInjectionAttacks token={token} />
+            </Tab>
+            
+            <Tab eventKey="fuzzer" title="Token Fuzzer">
+              <TokenFuzzer token={token} />
+            </Tab>
           </Tabs>
           
           {renderResultCard()}
@@ -338,4 +368,4 @@ const AttackSimulator = ({ token }) => {
   );
 };
 
-export default AttackSimulator; 
+export default AttackSimulator;

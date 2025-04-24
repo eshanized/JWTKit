@@ -9,6 +9,10 @@ import PayloadEditor from './components/PayloadEditor';
 import TokenTester from './components/TokenTester';
 import BruteForceEngine from './components/BruteForceEngine';
 import AttackSimulator from './components/AttackSimulator';
+import TokenHistory from './components/TokenHistory';
+import AuditLog from './components/AuditLog';
+import ToastContainer from './components/ToastContainer';
+import axios from 'axios';
 
 // Add Font Awesome CSS (add this to your public/index.html)
 // <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -18,15 +22,89 @@ function App() {
   const [jwtToken, setJwtToken] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showTypingEffect, setShowTypingEffect] = useState(true);
+  const [tokenHistory, setTokenHistory] = useState([]);
+  const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
     // Reset typing effect when tab changes
     setShowTypingEffect(false);
     setTimeout(() => setShowTypingEffect(true), 100);
+    
+    // Load token history on mount
+    fetchTokenHistory();
   }, [activeTab]);
 
-  const handleTokenChange = (token) => {
+  const fetchTokenHistory = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/history');
+      setTokenHistory(response.data);
+    } catch (error) {
+      console.error('Failed to fetch token history:', error);
+    }
+  };
+
+  const addToast = (title, message, variant = 'info') => {
+    const id = Date.now();
+    setToasts(currentToasts => [
+      ...currentToasts,
+      { id, title, message, variant }
+    ]);
+  };
+
+  const removeToast = (id) => {
+    setToasts(currentToasts => 
+      currentToasts.filter(toast => toast.id !== id)
+    );
+  };
+
+  const addToHistory = async (token, operation = 'manual', status = 'unknown', notes = '') => {
+    try {
+      await axios.post('http://localhost:8000/history', {
+        token,
+        operation,
+        status,
+        notes,
+        timestamp: Date.now()
+      });
+      await fetchTokenHistory();
+      
+      if (operation !== 'manual') {
+        addToast(
+          'Action Logged',
+          `${operation} operation has been recorded in history`,
+          'info'
+        );
+      }
+    } catch (error) {
+      addToast(
+        'Error',
+        'Failed to add token to history: ' + error.message,
+        'danger'
+      );
+      throw error;
+    }
+  };
+
+  const handleTokenChange = (token, operation = 'manual', status = 'unknown', notes = '') => {
     setJwtToken(token);
+    if (token) {
+      addToHistory(token, operation, status, notes)
+        .then(() => {
+          addToast('Token Updated', 'Token has been successfully updated and added to history', 'success');
+        })
+        .catch(error => {
+          addToast('Error', 'Failed to update token history', 'danger');
+        });
+    }
+  };
+
+  const handleTokenSelect = (historyEntry) => {
+    setJwtToken(historyEntry.value);
+  };
+
+  const handleTokenCompare = (token1, token2) => {
+    // Token comparison logic will be implemented later
+    console.log('Comparing tokens:', token1, token2);
   };
 
   const toggleDarkMode = () => {
@@ -42,7 +120,8 @@ function App() {
     { id: 'editor', label: 'Payload Editor', icon: 'fa-solid fa-pen-to-square', notification: false },
     { id: 'tester', label: 'Token Tester', icon: 'fa-solid fa-vial', notification: false },
     { id: 'bruteforce', label: 'Brute Force', icon: 'fa-solid fa-hammer', notification: false },
-    { id: 'simulator', label: 'Attack Simulator', icon: 'fa-solid fa-bug', notification: true }
+    { id: 'simulator', label: 'Attack Simulator', icon: 'fa-solid fa-bug', notification: true },
+    { id: 'audit', label: 'Audit Log', icon: 'fa-solid fa-clipboard-list', notification: false }
   ];
 
   const renderActiveTab = () => {
@@ -63,6 +142,8 @@ function App() {
         return <BruteForceEngine token={jwtToken} />;
       case 'simulator':
         return <AttackSimulator token={jwtToken} />;
+      case 'audit':
+        return <AuditLog />;
       default:
         return <JwtDecoder token={jwtToken} onTokenChange={handleTokenChange} />;
     }
@@ -130,28 +211,35 @@ function App() {
         </Row>
         <div className="content-container glass-panel p-4 animate-fade-in">
           {jwtToken && (
-            <div className="token-summary mb-4">
-              <Row className="align-items-center">
-                <Col md={8}>
-                  <div className="token-display">
-                    <code className="text-break">{jwtToken.length > 60 ? `${jwtToken.substring(0, 40)}...${jwtToken.substring(jwtToken.length - 20)}` : jwtToken}</code>
-                    <Button size="sm" variant="light" className="copy-btn">
-                      <i className="fa-regular fa-copy"></i>
-                    </Button>
-                  </div>
-                </Col>
-                <Col md={4} className="text-end">
-                  <Badge bg="primary" className="me-2">
-                    <i className="fa-solid fa-code me-1"></i> JWT
-                  </Badge>
-                  {jwtToken.includes('.') && (
-                    <Badge bg="success">
-                      <i className="fa-solid fa-check-circle me-1"></i> Valid Format
+            <>
+              <div className="token-summary mb-4">
+                <Row className="align-items-center">
+                  <Col md={8}>
+                    <div className="token-display">
+                      <code className="text-break">{jwtToken.length > 60 ? `${jwtToken.substring(0, 40)}...${jwtToken.substring(jwtToken.length - 20)}` : jwtToken}</code>
+                      <Button size="sm" variant="light" className="copy-btn">
+                        <i className="fa-regular fa-copy"></i>
+                      </Button>
+                    </div>
+                  </Col>
+                  <Col md={4} className="text-end">
+                    <Badge bg="primary" className="me-2">
+                      <i className="fa-solid fa-code me-1"></i> JWT
                     </Badge>
-                  )}
-                </Col>
-              </Row>
-            </div>
+                    {jwtToken.includes('.') && (
+                      <Badge bg="success">
+                        <i className="fa-solid fa-check-circle me-1"></i> Valid Format
+                      </Badge>
+                    )}
+                  </Col>
+                </Row>
+              </div>
+              <TokenHistory 
+                tokens={tokenHistory}
+                onSelectToken={handleTokenSelect}
+                onCompare={handleTokenCompare}
+              />
+            </>
           )}
           {renderActiveTab()}
         </div>
@@ -170,6 +258,10 @@ function App() {
           </Row>
         </Container>
       </footer>
+      <ToastContainer 
+        toasts={toasts}
+        removeToast={removeToast}
+      />
     </div>
   );
 }
