@@ -194,53 +194,116 @@ def test_token():
         header = jwt.get_unverified_header(data['token'])
         payload = jwt.decode(data['token'], options={"verify_signature": False})
         
-        # Basic validation tests
         validation_results = []
         
-        # Check for none algorithm
+        # Algorithm checks
         if header.get('alg') == 'none':
             validation_results.append({
                 "type": "alg_none",
-                "description": "Token uses 'none' algorithm",
+                "description": "Token uses 'none' algorithm which is insecure",
                 "severity": "high"
             })
-            
-        # Check for known dangerous claims
-        if payload.get('admin', False):
+        elif header.get('alg') in ['HS256', 'HS384', 'HS512']:
             validation_results.append({
-                "type": "admin_claim",
-                "description": "Token contains admin claim set to true",
-                "severity": "high"
+                "type": "symmetric_algorithm",
+                "description": "Token uses symmetric algorithm - ensure secret key is properly secured",
+                "severity": "medium"
             })
             
-        # Check for SQL injection attempts in kid
+        # Key ID (kid) checks
         kid = header.get('kid', '')
-        sql_patterns = ["'", "SELECT", "UNION", "--"]
-        if any(pattern.lower() in kid.lower() for pattern in sql_patterns):
-            validation_results.append({
-                "type": "kid_sql",
-                "description": "Potential SQL injection in kid header",
-                "severity": "high"
-            })
+        if kid:
+            # SQL injection check
+            sql_patterns = ["'", "SELECT", "UNION", "--", "/*", "*/", "="]
+            if any(pattern.lower() in kid.lower() for pattern in sql_patterns):
+                validation_results.append({
+                    "type": "kid_sql",
+                    "description": "Potential SQL injection vulnerability in kid header",
+                    "severity": "high"
+                })
             
-        # Check for path traversal in kid
-        if '../' in kid or '..\\' in kid:
+            # Path traversal check
+            if '../' in kid or '..\\' in kid or '%2e' in kid.lower():
+                validation_results.append({
+                    "type": "kid_path_traversal",
+                    "description": "Potential path traversal vulnerability in kid header",
+                    "severity": "high"
+                })
+        else:
             validation_results.append({
-                "type": "kid_path_traversal",
-                "description": "Potential path traversal in kid header",
-                "severity": "high"
+                "type": "missing_kid",
+                "description": "Missing key identifier (kid) in header",
+                "severity": "low"
             })
-            
-        # Check for expired token
+
+        # Sensitive claim checks
+        sensitive_claims = ['admin', 'role', 'permissions', 'scope']
+        for claim in sensitive_claims:
+            if claim in payload:
+                validation_results.append({
+                    "type": "sensitive_claim",
+                    "description": f"Token contains sensitive {claim} claim - review security implications",
+                    "severity": "medium"
+                })
+
+        # Expiration checks
         if 'exp' in payload:
             try:
                 jwt.decode(data['token'], options={"verify_signature": False, "verify_exp": True})
             except jwt.ExpiredSignatureError:
                 validation_results.append({
                     "type": "expired",
-                    "description": "Token is expired",
+                    "description": "Token has expired",
                     "severity": "medium"
                 })
+        else:
+            validation_results.append({
+                "type": "missing_exp",
+                "description": "Token does not have an expiration claim",
+                "severity": "medium"
+            })
+
+        # Standard claims check
+        standard_claims = {
+            'iss': 'issuer',
+            'sub': 'subject',
+            'aud': 'audience',
+            'iat': 'issued at',
+            'nbf': 'not before'
+        }
+        
+        for claim, name in standard_claims.items():
+            if claim not in payload:
+                validation_results.append({
+                    "type": f"missing_{claim}",
+                    "description": f"Missing {name} claim",
+                    "severity": "low"
+                })
+
+        # JWK or x5c header checks
+        if 'jwk' in header:
+            validation_results.append({
+                "type": "embedded_jwk",
+                "description": "Token contains embedded JWK - potential security risk",
+                "severity": "high"
+            })
+            
+        if 'x5c' in header:
+            validation_results.append({
+                "type": "embedded_cert",
+                "description": "Token contains embedded X.509 certificate - potential security risk",
+                "severity": "high"
+            })
+
+        # Log the test results
+        log_entry = {
+            "action": "Token Security Test",
+            "details": f"Performed security analysis on token. Found {len(validation_results)} potential issues.",
+            "severity": "info" if not validation_results else max(r["severity"] for r in validation_results),
+            "success": True,
+            "token": data['token']
+        }
+        audit_manager.add_log(log_entry)
             
         return jsonify({
             "success": True,
@@ -250,9 +313,17 @@ def test_token():
         })
         
     except Exception as e:
+        error_message = str(e)
+        audit_manager.add_log({
+            "action": "Token Security Test",
+            "details": f"Error analyzing token: {error_message}",
+            "severity": "high",
+            "success": False,
+            "token": data['token']
+        })
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": error_message
         }), 400
 
 @api.route('/audit-log', methods=['GET'])

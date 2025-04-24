@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Form, Button, Card, Alert, InputGroup } from 'react-bootstrap';
+import { Form, Button, Card, Alert, InputGroup, Row, Col } from 'react-bootstrap';
 import axios from 'axios';
+import ValidationFeedback from './ValidationFeedback';
 
 const TokenTester = ({ token }) => {
   const [url, setUrl] = useState('');
@@ -12,6 +13,8 @@ const TokenTester = ({ token }) => {
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationResults, setValidationResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 
@@ -85,6 +88,28 @@ const TokenTester = ({ token }) => {
     }
   };
 
+  const validateToken = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token })
+      });
+      
+      const data = await response.json();
+      if (data.validation_results) {
+        setValidationResults(data.validation_results);
+      }
+    } catch (error) {
+      console.error('Error validating token:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     let variant = 'secondary';
     
@@ -107,6 +132,52 @@ const TokenTester = ({ token }) => {
 
   return (
     <div>
+      <Row>
+        <Col md={6}>
+          <Card className="mb-4">
+            <Card.Header>
+              <h5 className="mb-0">Token Security Tester</h5>
+            </Card.Header>
+            <Card.Body>
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label>JWT Token</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    value={token}
+                    readOnly
+                    placeholder="Enter or paste a JWT token to test"
+                  />
+                </Form.Group>
+                <Button 
+                  variant="primary" 
+                  onClick={validateToken}
+                  disabled={!token || isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-shield-alt me-2"></i>
+                      Test Token Security
+                    </>
+                  )}
+                </Button>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={6}>
+          <ValidationFeedback 
+            token={token} 
+            validationResults={validationResults}
+          />
+        </Col>
+      </Row>
       <h2>JWT Token Tester</h2>
       <p>Test your JWT token against a real endpoint</p>
       
