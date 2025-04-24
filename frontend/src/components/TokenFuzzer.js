@@ -12,6 +12,7 @@ const TokenFuzzer = ({ token }) => {
     jwt_attacks: true,
     null_byte: true
   });
+  const [shouldContinue, setShouldContinue] = useState(true);
 
   const fuzzingPayloads = {
     sql_injection: [
@@ -128,6 +129,12 @@ const TokenFuzzer = ({ token }) => {
     for (const [category, payloads] of Object.entries(fuzzingPayloads)) {
       if (selectedPayloads[category]) {
         for (const payload of payloads) {
+          if (!shouldContinue) {
+            setIsRunning(false);
+            setProgress(0);
+            return;
+          }
+
           // Test payload in header
           const headerFuzzedToken = modifyToken(token, { kid: payload }, 'header');
           const headerResult = await validateFuzzedToken(headerFuzzedToken, payload, category);
@@ -140,6 +147,14 @@ const TokenFuzzer = ({ token }) => {
 
           completed += 2;
           setProgress(Math.round((completed / totalTests) * 100));
+
+          // Every 5 tests, prompt to continue
+          if (completed % 10 === 0 && completed < totalTests) {
+            if (!window.confirm('Continue to iterate?')) {
+              setShouldContinue(false);
+              break;
+            }
+          }
         }
       }
     }
@@ -147,6 +162,7 @@ const TokenFuzzer = ({ token }) => {
     setFuzzResults(results);
     setIsRunning(false);
     setProgress(0);
+    setShouldContinue(true);
 
     // Log fuzzing session to audit log
     try {
