@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Form, InputGroup } from 'react-bootstrap';
+import { Card, Table, Badge, Button, Form, InputGroup, Tabs, Tab } from 'react-bootstrap';
 import { saveAs } from 'file-saver';
+import AttackAnalytics from './AttackAnalytics';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
   const [filter, setFilter] = useState('');
+  const [activeTab, setActiveTab] = useState('logs');
   const [sortField, setSortField] = useState('timestamp');
   const [sortDirection, setSortDirection] = useState('desc');
 
@@ -82,80 +84,94 @@ const AuditLog = () => {
   };
 
   return (
-    <Card>
-      <Card.Header className="d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">Audit Log</h5>
-        <Button 
-          variant="outline-primary" 
-          size="sm"
-          onClick={exportLogs}
-        >
-          <i className="fas fa-download me-1"></i>
-          Export CSV
-        </Button>
-      </Card.Header>
-      <Card.Body>
-        <InputGroup className="mb-3">
-          <InputGroup.Text>
-            <i className="fas fa-search"></i>
-          </InputGroup.Text>
-          <Form.Control
-            placeholder="Filter logs..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
-        </InputGroup>
+    <div>
+      <Card>
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">Security Audit & Analytics</h5>
+          <Button 
+            variant="outline-primary" 
+            size="sm"
+            onClick={exportLogs}
+            className="export-btn"
+          >
+            <i className="fas fa-download me-1"></i>
+            Export CSV
+          </Button>
+        </Card.Header>
+        <Card.Body>
+          <Tabs
+            activeKey={activeTab}
+            onSelect={(k) => setActiveTab(k)}
+            className="mb-3"
+          >
+            <Tab eventKey="logs" title="Audit Logs">
+              <InputGroup className="mb-3">
+                <InputGroup.Text>
+                  <i className="fas fa-search"></i>
+                </InputGroup.Text>
+                <Form.Control
+                  placeholder="Filter logs..."
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                />
+              </InputGroup>
 
-        <div className="table-responsive">
-          <Table hover bordered>
-            <thead>
-              <tr>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('timestamp')}>
-                  Timestamp {sortField === 'timestamp' && (
-                    <i className={`fas fa-sort-${sortDirection}`}></i>
-                  )}
-                </th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('action')}>
-                  Action {sortField === 'action' && (
-                    <i className={`fas fa-sort-${sortDirection}`}></i>
-                  )}
-                </th>
-                <th>Details</th>
-                <th style={{ cursor: 'pointer' }} onClick={() => handleSort('severity')}>
-                  Severity {sortField === 'severity' && (
-                    <i className={`fas fa-sort-${sortDirection}`}></i>
-                  )}
-                </th>
-                <th>Result</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log, index) => (
-                <tr key={index}>
-                  <td className="text-nowrap">{formatTimestamp(log.timestamp)}</td>
-                  <td>
-                    <Badge bg="secondary" className="text-wrap">
-                      {log.action}
-                    </Badge>
-                  </td>
-                  <td>{log.details}</td>
-                  <td>
-                    <Badge bg={getSeverityVariant(log.severity)}>
-                      {log.severity.toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td>
-                    <Badge bg={log.success ? 'success' : 'danger'}>
-                      {log.success ? 'Success' : 'Failed'}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </div>
-      </Card.Body>
-    </Card>
+              <div className="table-responsive">
+                <Table hover bordered className="audit-log-table">
+                  <thead>
+                    <tr>
+                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('timestamp')}>
+                        Timestamp {sortField === 'timestamp' && (
+                          <i className={`fas fa-sort-${sortDirection}`}></i>
+                        )}
+                      </th>
+                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('action')}>
+                        Action {sortField === 'action' && (
+                          <i className={`fas fa-sort-${sortDirection}`}></i>
+                        )}
+                      </th>
+                      <th>Details</th>
+                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('severity')}>
+                        Severity {sortField === 'severity' && (
+                          <i className={`fas fa-sort-${sortDirection}`}></i>
+                        )}
+                      </th>
+                      <th>Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLogs.map((log, index) => (
+                      <tr key={index}>
+                        <td className="text-nowrap audit-timestamp">{formatTimestamp(log.timestamp)}</td>
+                        <td>
+                          <Badge bg="secondary" className="text-wrap audit-action">
+                            {log.action}
+                          </Badge>
+                        </td>
+                        <td className="audit-details">{log.details}</td>
+                        <td>
+                          <Badge bg={getSeverityVariant(log.severity)} className={`severity-${log.severity.toLowerCase()}`}>
+                            {log.severity.toUpperCase()}
+                          </Badge>
+                        </td>
+                        <td>
+                          <Badge bg={log.success ? 'success' : 'danger'}>
+                            {log.success ? 'Success' : 'Failed'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            </Tab>
+            <Tab eventKey="analytics" title="Analytics Dashboard">
+              <AttackAnalytics />
+            </Tab>
+          </Tabs>
+        </Card.Body>
+      </Card>
+    </div>
   );
 };
 
