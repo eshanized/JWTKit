@@ -24,7 +24,9 @@ except ImportError:
 
 # Import our custom modules
 try:
+    # type: ignore
     from key_manager import get_key_manager
+    from attack_simulator import JWTSecurityTester as ExternalJWTSecurityTester
     has_advanced_modules = True
 except ImportError:
     print("Warning: Advanced modules not found. Some features will be disabled.")
@@ -362,7 +364,10 @@ def verify_managed_token():
         # Handle key based on type and convert to string if needed
         key_type = key_data.get('kty', '').upper()
         if key_type == 'HMAC':
-            key = base64.b64decode(key_data['k']).decode('utf-8')  # Convert bytes to string
+            key = base64.b64decode(key_data['k'])
+            # Ensure key is string for jwt.decode
+            if isinstance(key, bytes):
+                key = key.decode('utf-8')
         elif key_type in ['RSA', 'EC', 'OKP']:
             key = key_data['public_key']
         else:
@@ -587,6 +592,9 @@ def audit_token():
                     key_type = key_data.get('kty', '').upper()
                     if key_type == 'HMAC':
                         key = base64.b64decode(key_data['k'])
+                        # Ensure key is string for jwt.decode
+                        if isinstance(key, bytes):
+                            key = key.decode('utf-8')
                     elif key_type in ['RSA', 'EC', 'OKP']:
                         key = key_data['public_key']
                     else:
@@ -677,4 +685,12 @@ def audit_token():
 def register_advanced_api(app):
     """Register the advanced API Blueprint with a Flask app"""
     app.register_blueprint(advanced_api, url_prefix='/api/v1')
-    logger.info("Advanced API endpoints registered")
+    logger.info("Advanced API endpoints registered"   
+                
+                
+                
+                
+                
+                
+                
+                )
