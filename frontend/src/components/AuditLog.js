@@ -1,174 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Form, InputGroup, Tabs, Tab } from 'react-bootstrap';
-import { saveAs } from 'file-saver';
+import { Card, Table, Badge, Row, Col, Form } from 'react-bootstrap';
+import SecurityPatternDetector from './SecurityPatternDetector';
 import AttackAnalytics from './AttackAnalytics';
 
 const AuditLog = () => {
   const [logs, setLogs] = useState([]);
-  const [filter, setFilter] = useState('');
-  const [activeTab, setActiveTab] = useState('logs');
-  const [sortField, setSortField] = useState('timestamp');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [filteredLogs, setFilteredLogs] = useState([]);
+  const [filters, setFilters] = useState({
+    severity: 'all',
+    success: 'all',
+    timeRange: '24h'
+  });
 
   useEffect(() => {
     fetchLogs();
+    // Poll for new logs every 30 seconds
+    const interval = setInterval(fetchLogs, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [logs, filters]);
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('http://localhost:8000/audit-log');
+      const response = await fetch('http://localhost:8000/audit/logs');
       const data = await response.json();
       setLogs(data);
-    } catch (err) {
-      console.error('Failed to fetch audit logs:', err);
+    } catch (error) {
+      console.error('Error fetching audit logs:', error);
     }
   };
 
-  const getSeverityVariant = (severity) => {
-    switch (severity.toLowerCase()) {
-      case 'high':
-        return 'danger';
-      case 'medium':
-        return 'warning';
-      case 'low':
-        return 'info';
-      default:
-        return 'secondary';
+  const applyFilters = () => {
+    let filtered = [...logs];
+
+    // Apply severity filter
+    if (filters.severity !== 'all') {
+      filtered = filtered.filter(log => log.severity === filters.severity);
     }
-  };
 
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const sortLogs = (a, b) => {
-    const multiplier = sortDirection === 'asc' ? 1 : -1;
-    if (sortField === 'timestamp') {
-      return (new Date(a.timestamp) - new Date(b.timestamp)) * multiplier;
+    // Apply success filter
+    if (filters.success !== 'all') {
+      filtered = filtered.filter(log => log.success === (filters.success === 'true'));
     }
-    return (a[sortField] > b[sortField] ? 1 : -1) * multiplier;
-  };
 
-  const handleSort = (field) => {
-    if (field === sortField) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+    // Apply time range filter
+    const now = new Date();
+    const timeRanges = {
+      '1h': 60 * 60 * 1000,
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000
+    };
+
+    if (filters.timeRange in timeRanges) {
+      const cutoff = now.getTime() - timeRanges[filters.timeRange];
+      filtered = filtered.filter(log => new Date(log.timestamp).getTime() > cutoff);
     }
+
+    setFilteredLogs(filtered);
   };
 
-  const filteredLogs = logs
-    .filter(log => 
-      log.action.toLowerCase().includes(filter.toLowerCase()) ||
-      log.details.toLowerCase().includes(filter.toLowerCase()) ||
-      log.severity.toLowerCase().includes(filter.toLowerCase())
-    )
-    .sort(sortLogs);
-
-  const exportLogs = () => {
-    const csv = [
-      ['Timestamp', 'Action', 'Details', 'Severity', 'Success', 'Token'],
-      ...filteredLogs.map(log => [
-        formatTimestamp(log.timestamp),
-        log.action,
-        log.details,
-        log.severity,
-        log.success ? 'Yes' : 'No',
-        log.token
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    saveAs(blob, `jwt-audit-log-${new Date().toISOString()}.csv`);
+  const getSeverityBadge = (severity) => {
+    const variant = severity === 'high' ? 'danger' :
+                   severity === 'medium' ? 'warning' : 'info';
+    return (
+      <Badge bg={variant}>
+        {severity.toUpperCase()}
+      </Badge>
+    );
   };
 
   return (
     <div>
+      <Row className="mb-4">
+        <Col>
+          <AttackAnalytics logs={filteredLogs} />
+        </Col>
+      </Row>
+
+      <Row className="mb-4">
+        <Col>
+          <SecurityPatternDetector logs={filteredLogs} />
+        </Col>
+      </Row>
+
       <Card>
         <Card.Header className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Security Audit & Analytics</h5>
-          <Button 
-            variant="outline-primary" 
-            size="sm"
-            onClick={exportLogs}
-            className="export-btn"
-          >
-            <i className="fas fa-download me-1"></i>
-            Export CSV
-          </Button>
+          <h5 className="mb-0">Audit Log</h5>
+          <div className="d-flex gap-3">
+            <Form.Select
+              size="sm"
+              value={filters.severity}
+              onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
+            >
+              <option value="all">All Severities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </Form.Select>
+
+            <Form.Select
+              size="sm"
+              value={filters.success}
+              onChange={(e) => setFilters({ ...filters, success: e.target.value })}
+            >
+              <option value="all">All Results</option>
+              <option value="true">Success</option>
+              <option value="false">Failure</option>
+            </Form.Select>
+
+            <Form.Select
+              size="sm"
+              value={filters.timeRange}
+              onChange={(e) => setFilters({ ...filters, timeRange: e.target.value })}
+            >
+              <option value="1h">Last Hour</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+            </Form.Select>
+          </div>
         </Card.Header>
         <Card.Body>
-          <Tabs
-            activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k)}
-            className="mb-3"
-          >
-            <Tab eventKey="logs" title="Audit Logs">
-              <InputGroup className="mb-3">
-                <InputGroup.Text>
-                  <i className="fas fa-search"></i>
-                </InputGroup.Text>
-                <Form.Control
-                  placeholder="Filter logs..."
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                />
-              </InputGroup>
-
-              <div className="table-responsive">
-                <Table hover bordered className="audit-log-table">
-                  <thead>
-                    <tr>
-                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('timestamp')}>
-                        Timestamp {sortField === 'timestamp' && (
-                          <i className={`fas fa-sort-${sortDirection}`}></i>
-                        )}
-                      </th>
-                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('action')}>
-                        Action {sortField === 'action' && (
-                          <i className={`fas fa-sort-${sortDirection}`}></i>
-                        )}
-                      </th>
-                      <th>Details</th>
-                      <th style={{ cursor: 'pointer' }} onClick={() => handleSort('severity')}>
-                        Severity {sortField === 'severity' && (
-                          <i className={`fas fa-sort-${sortDirection}`}></i>
-                        )}
-                      </th>
-                      <th>Result</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLogs.map((log, index) => (
-                      <tr key={index}>
-                        <td className="text-nowrap audit-timestamp">{formatTimestamp(log.timestamp)}</td>
-                        <td>
-                          <Badge bg="secondary" className="text-wrap audit-action">
-                            {log.action}
-                          </Badge>
-                        </td>
-                        <td className="audit-details">{log.details}</td>
-                        <td>
-                          <Badge bg={getSeverityVariant(log.severity)} className={`severity-${log.severity.toLowerCase()}`}>
-                            {log.severity.toUpperCase()}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge bg={log.success ? 'success' : 'danger'}>
-                            {log.success ? 'Success' : 'Failed'}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            </Tab>
-            <Tab eventKey="analytics" title="Analytics Dashboard">
-              <AttackAnalytics />
-            </Tab>
-          </Tabs>
+          <div className="table-responsive">
+            <Table striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                  <th>IP Address</th>
+                  <th>Token</th>
+                  <th>Status</th>
+                  <th>Severity</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLogs.map((log, index) => (
+                  <tr key={index}>
+                    <td>{new Date(log.timestamp).toLocaleString()}</td>
+                    <td>{log.action}</td>
+                    <td>{log.ip_address}</td>
+                    <td>
+                      <code className="text-break">{log.token?.substring(0, 20)}...</code>
+                    </td>
+                    <td>
+                      <Badge bg={log.success ? 'success' : 'danger'}>
+                        {log.success ? 'Success' : 'Failure'}
+                      </Badge>
+                    </td>
+                    <td>{getSeverityBadge(log.severity)}</td>
+                    <td>{log.details}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
         </Card.Body>
       </Card>
     </div>
