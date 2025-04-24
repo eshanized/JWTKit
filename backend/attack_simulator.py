@@ -11,6 +11,9 @@ import base64
 import hashlib
 import hmac
 import os
+import datetime
+from cryptography import x509
+from cryptography.x509 import oid
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes
@@ -634,7 +637,7 @@ class JWTSecurityTester:
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
-            )
+            ).decode('utf-8')  # Convert bytes to string
             signature = jwt.encode(payload, private_key_pem, algorithm='RS256', headers=modified_header).split('.')[2]
             
             forged_token = f"{encoded_header}.{encoded_payload}.{signature}"
@@ -666,7 +669,7 @@ class JWTSecurityTester:
             
             # Create self-signed certificate
             subject = issuer = x509.Name([
-                x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, u"attacker.local")
+                x509.NameAttribute(oid.NameOID.COMMON_NAME, u"attacker.local")
             ])
             
             cert = x509.CertificateBuilder().subject_name(
@@ -701,7 +704,7 @@ class JWTSecurityTester:
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
-            )
+            ).decode('utf-8')  # Convert bytes to string
             signature = jwt.encode(payload, private_key_pem, algorithm='RS256', headers=modified_header).split('.')[2]
             
             forged_token = f"{encoded_header}.{encoded_payload}.{signature}"
