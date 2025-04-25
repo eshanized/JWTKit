@@ -1,16 +1,21 @@
-# <div align="center"><img src="frontend/public/logo.svg" alt="JWTKit Logo" width="120"/></div>
-
-<h1 align="center">JWTKit</h1>
-<p align="center">Web-Based JWT Attacker & Analyzer Toolkit</p>
+# JWTKit
 
 <p align="center">
-  <img src="https://img.shields.io/badge/features-10+-4361EE" alt="Features"/>
-  <img src="https://img.shields.io/badge/setup-easy-0BB37E" alt="Setup"/>
-  <img src="https://img.shields.io/badge/license-MIT-4CC9F0" alt="License"/>
-  <img src="https://img.shields.io/badge/version-1.1.0-F9A826" alt="Version"/>
-  <img src="https://img.shields.io/badge/react-%5E18.0.0-61DAFB" alt="React"/>
-  <img src="https://img.shields.io/badge/python-%5E3.8-3776AB" alt="Python"/>
-  <img src="https://img.shields.io/badge/deployment-github%20pages-222222" alt="Deployment"/>
+  <img src="frontend/public/logo.svg" alt="JWTKit Logo" width="120" />
+</p>
+
+<p align="center">
+  <strong>Web-Based JWT Attacker &amp; Analyzer Toolkit</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/features-10+-4361EE" alt="Features" />
+  <img src="https://img.shields.io/badge/setup-easy-0BB37E" alt="Setup" />
+  <img src="https://img.shields.io/badge/license-MIT-4CC9F0" alt="License" />
+  <img src="https://img.shields.io/badge/version-1.1.0-F9A826" alt="Version" />
+  <img src="https://img.shields.io/badge/react-%5E18.0.0-61DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/python-%5E3.8-3776AB" alt="Python" />
+  <img src="https://img.shields.io/badge/deployment-github%20pages-222222" alt="Deployment" />
 </p>
 
 <p align="center">
@@ -19,7 +24,7 @@
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-getting-started">Installation</a> •
   <a href="#-recent-updates">Recent Updates</a> •
-  <a href="#%EF%B8%8F-legal-disclaimer">Disclaimer</a> •
+  <a href="#-legal-disclaimer">Disclaimer</a> •
   <a href="#-license">License</a>
 </p>
 
@@ -27,75 +32,82 @@
 
 ## 👤 Author
 
-- **Eshanized** (m.eshanized@gmail.com)
+- **Eshanized** (<a href="mailto:m.eshanized@gmail.com">m.eshanized@gmail.com</a>)
 - GitHub: [@eshanized](https://github.com/eshanized)
+
+---
 
 ## 📋 Project Summary
 
 **JWTKit** is a powerful, web-based offensive security toolkit designed to analyze, manipulate, and exploit JSON Web Tokens (JWTs) — one of the most widely used authentication mechanisms in modern web applications. Built for ethical hackers, penetration testers, and security researchers, JWTKit helps uncover misconfigurations and vulnerabilities in token-based systems.
 
+---
+
 ## ✨ Key Features
 
 <table>
   <tr>
-    <td width="50%">
-      <h3>🔍 JWT Decoder & Inspector</h3>
+    <td width="50%" valign="top">
+      <h3>🔍 JWT Decoder &amp; Inspector</h3>
       <p>Decode and analyze JWT structure with intuitive visualization of header, payload, and signature.</p>
     </td>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>🛡️ Vulnerability Scanner</h3>
       <p>Automatically detect common JWT security issues including algorithm weaknesses, missing claims, and expiration problems.</p>
     </td>
   </tr>
   <tr>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>✅ Signature Verifier</h3>
       <p>Verify token signatures with various algorithms and key formats.</p>
     </td>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>🔄 Algorithm Confusion Tester</h3>
       <p>Test for algorithm confusion vulnerabilities that can lead to signature bypass.</p>
     </td>
   </tr>
   <tr>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>🔨 Brute-Force Engine</h3>
       <p>Attempt to crack weak JWT secrets using wordlists and intelligent analysis.</p>
     </td>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>✏️ Payload Editor</h3>
       <p>Modify token contents and claims with an intuitive interface.</p>
     </td>
   </tr>
   <tr>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>🧪 Token Tester</h3>
       <p>Verify exploitability against real endpoints with customizable requests.</p>
     </td>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>⏱️ Time Manipulation Tool</h3>
       <p>Bypass token expiration constraints by modifying timestamps.</p>
     </td>
   </tr>
   <tr>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>🔐 Key Management</h3>
       <p>Create, store, and manage cryptographic keys for JWT operations including RSA, EC, and HMAC.</p>
     </td>
-    <td width="50%">
+    <td width="50%" valign="top">
       <h3>📊 Security Pattern Detection</h3>
       <p>Analyze logs to identify attack patterns such as brute force attempts and algorithm confusion attacks.</p>
     </td>
   </tr>
 </table>
 
-Additional features:
-- 📚 **Payload Template Library**: Common attack patterns
-- 📝 **Pentest Report Generator**: Document findings professionally
-- 🔌 **REST API Mode**: Automate JWT testing workflows
-- 👥 **Multi-User Dashboard**: Team collaboration
-- 📋 **Audit Logging System**: Track actions and detect potential attacks
-- 🔍 **Token Comparison Tool**: Compare different tokens side by side
+### Additional Features
+
+- 📚 **Payload Template Library**: Common attack patterns  
+- 📝 **Pentest Report Generator**: Document findings professionally  
+- 🔌 **REST API Mode**: Automate JWT testing workflows  
+- 👥 **Multi-User Dashboard**: Team collaboration  
+- 📋 **Audit Logging System**: Track actions and detect potential attacks  
+- 🔍 **Token Comparison Tool**: Compare different tokens side by side  
+
+---
 
 ## 🧱 Tech Stack
 
@@ -104,33 +116,35 @@ Additional features:
     <tr>
       <td align="center" width="96">
         <img src="https://img.icons8.com/color/48/000000/react-native.png" width="48" height="48" alt="React" />
-        <br>React
+        <br />React
       </td>
       <td align="center" width="96">
         <img src="https://img.icons8.com/color/48/000000/python.png" width="48" height="48" alt="Python" />
-        <br>Python
+        <br />Python
       </td>
       <td align="center" width="96">
         <img src="https://img.icons8.com/color/48/000000/material-ui.png" width="48" height="48" alt="Material UI" />
-        <br>Material UI
+        <br />Material UI
       </td>
     </tr>
     <tr>
       <td align="center" width="96">
         <img src="https://img.icons8.com/color/48/000000/javascript.png" width="48" height="48" alt="JavaScript" />
-        <br>JavaScript
+        <br />JavaScript
       </td>
       <td align="center" width="96">
         <img src="https://img.icons8.com/ios-filled/50/000000/flask.png" width="48" height="48" alt="Flask" />
-        <br>Flask
+        <br />Flask
       </td>
       <td align="center" width="96">
         <img src="https://img.icons8.com/color/48/000000/database-restore.png" width="48" height="48" alt="SQLite" />
-        <br>SQLite
+        <br />SQLite
       </td>
     </tr>
   </table>
 </div>
+
+---
 
 ## 🚀 Getting Started
 
@@ -203,21 +217,27 @@ For convenience, you can also use the provided start script:
 This will check for required dependencies, set up the environment, and start both servers.
 </details>
 
+---
+
 ## 🔄 Recent Updates
 
-- **Key Management System**: Added comprehensive key management for creating and managing cryptographic keys (RSA, EC, HMAC)
-- **Security Pattern Detection**: New component to analyze logs and identify attack patterns
-- **Improved Error Handling**: Enhanced error handling throughout the application, especially for JSON request processing
-- **Authentication Enhancements**: Updated Login component with improved styles and error handling
-- **Deployment Change**: Migrated from GitLab CI to GitHub Pages deployment
-- **Public Routes**: Made all routes public to improve accessibility for demo purposes
-- **Documentation**: Added detailed CHANGELOG.md to track project evolution
+- **Key Management System**: Added comprehensive key management for creating and managing cryptographic keys (RSA, EC, HMAC)  
+- **Security Pattern Detection**: New component to analyze logs and identify attack patterns  
+- **Improved Error Handling**: Enhanced error handling throughout the application, especially for JSON request processing  
+- **Authentication Enhancements**: Updated Login component with improved styles and error handling  
+- **Deployment Change**: Migrated from GitLab CI to GitHub Pages deployment  
+- **Public Routes**: Made all routes public to improve accessibility for demo purposes  
+- **Documentation**: Added detailed CHANGELOG.md to track project evolution  
 
 For a complete list of changes, see the [CHANGELOG.md](./CHANGELOG.md) file.
+
+---
 
 ## ⚠️ Legal Disclaimer
 
 **JWTKit** is developed for **educational and authorized penetration testing purposes only**. Unauthorized use against systems without permission is illegal and unethical.
+
+---
 
 ## 📜 License
 
