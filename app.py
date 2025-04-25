@@ -526,6 +526,24 @@ def test_endpoint():
     
     # Validate the URL
     from urllib.parse import urlparse
+    
+    def is_valid_url(url):
+        """Validate the URL to prevent SSRF attacks."""
+        allowed_domains = {"example.com", "api.example.com"}
+        parsed_url = urlparse(url)
+        
+        # Ensure the scheme is http or https
+        if parsed_url.scheme not in {"http", "https"}:
+            return False
+        
+        # Ensure the hostname is in the allowed domains
+        if parsed_url.hostname not in allowed_domains:
+            return False
+        
+        return True
+    
+    if not is_valid_url(url):
+        return jsonify({"error": "Invalid URL"}), 400
     allowed_domains = ["example.com", "api.example.com"]
     
     try:
