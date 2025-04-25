@@ -1,115 +1,134 @@
-import React, { useEffect, useState } from 'react';
-import { Card, ListGroup, Badge } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, List, ListItem, ListItemText, Paper, Alert } from '@mui/material';
 
-const SecurityPatternDetector = ({ logs }) => {
-  const [patterns, setPatterns] = useState([]);
+const SecurityPatternDetector = ({ logs = [] }) => {
+  const [detectedPatterns, setDetectedPatterns] = useState([]);
+  const [patternDetails, setPatternDetails] = useState({});
 
   useEffect(() => {
     analyzePatterns();
   }, [logs]);
 
   const analyzePatterns = () => {
-    const detectedPatterns = [];
-    
+    const patterns = [];
+    const details = {};
+
+    // Skip analysis if logs is undefined or empty
+    if (!logs || logs.length === 0) {
+      setDetectedPatterns([]);
+      setPatternDetails({});
+      return;
+    }
+
     // Check for brute force attempts
-    const recentLogs = logs.filter(log => {
-      const logTime = new Date(log.timestamp).getTime();
-      const fiveMinutesAgo = new Date().getTime() - (5 * 60 * 1000);
-      return logTime > fiveMinutesAgo;
+    const loginFailures = logs.filter(log => 
+      log.action === 'login_failed'
+    );
+    
+    // Group by IP and check if any IP has multiple failed attempts
+    const ipAttempts = {};
+    loginFailures.forEach(log => {
+      const ip = log.ip_address;
+      ipAttempts[ip] = (ipAttempts[ip] || 0) + 1;
     });
-
-    const ipCounts = {};
-    recentLogs.forEach(log => {
-      ipCounts[log.ip_address] = (ipCounts[log.ip_address] || 0) + 1;
-    });
-
-    Object.entries(ipCounts).forEach(([ip, count]) => {
-      if (count > 50) {
-        detectedPatterns.push({
-          type: 'Brute Force',
-          severity: 'high',
-          details: `Potential brute force attack detected from IP ${ip} (${count} attempts in 5 minutes)`
-        });
-      }
-    });
+    
+    const bruteForceIPs = Object.keys(ipAttempts).filter(ip => ipAttempts[ip] >= 5);
+    
+    if (bruteForceIPs.length > 0) {
+      patterns.push('Brute Force Attempts');
+      details['Brute Force Attempts'] = {
+        description: 'Multiple failed login attempts from the same IP address',
+        ips: bruteForceIPs,
+        counts: bruteForceIPs.map(ip => ipAttempts[ip])
+      };
+    }
 
     // Check for algorithm confusion attempts
-    const algNoneAttempts = logs.filter(log => 
-      log.token && 
-      (log.token.includes('"alg":"none"') || log.token.includes('"alg":null'))
+    const algConfusionAttempts = logs.filter(log => 
+      log.action === 'token_verification_failed' && 
+      log.details && 
+      log.details.includes('algorithm confusion')
     );
-
-    if (algNoneAttempts.length > 0) {
-      detectedPatterns.push({
-        type: 'Algorithm Confusion',
-        severity: 'high',
-        details: 'Attempts to exploit algorithm confusion detected'
-      });
+    
+    if (algConfusionAttempts.length > 0) {
+      patterns.push('Algorithm Confusion');
+      details['Algorithm Confusion'] = {
+        description: 'Attempts to exploit algorithm confusion vulnerability',
+        count: algConfusionAttempts.length,
+        examples: algConfusionAttempts.slice(0, 3).map(log => log.details)
+      };
     }
 
-    // Check for signature stripping
-    const strippedSigs = logs.filter(log =>
-      log.token && log.token.split('.').length < 3
+    // Check for signature stripping attempts
+    const sigStripAttempts = logs.filter(log => 
+      log.action === 'token_verification_failed' && 
+      log.details && 
+      log.details.includes('signature stripped')
     );
-
-    if (strippedSigs.length > 0) {
-      detectedPatterns.push({
-        type: 'Signature Stripping',
-        severity: 'high',
-        details: 'Attempts to remove token signatures detected'
-      });
+    
+    if (sigStripAttempts.length > 0) {
+      patterns.push('Signature Stripping');
+      details['Signature Stripping'] = {
+        description: 'Attempts to use tokens with removed signatures',
+        count: sigStripAttempts.length,
+        examples: sigStripAttempts.slice(0, 3).map(log => log.details)
+      };
     }
 
-    // Detect payload tampering patterns
-    const commonPayloadAttacks = logs.filter(log =>
-      log.token && (
-        log.token.includes('"admin":true') ||
-        log.token.includes('"role":"admin"') ||
-        log.token.includes('"priv":') ||
-        log.token.includes('"group":')
-      )
+    // Check for payload tampering
+    const payloadTamperAttempts = logs.filter(log => 
+      log.action === 'token_validation_failed' && 
+      log.details && 
+      log.details.includes('payload tampering')
     );
-
-    if (commonPayloadAttacks.length > 0) {
-      detectedPatterns.push({
-        type: 'Payload Tampering',
-        severity: 'high',
-        details: 'Potential privilege escalation attempts detected in token payloads'
-      });
+    
+    if (payloadTamperAttempts.length > 0) {
+      patterns.push('Payload Tampering');
+      details['Payload Tampering'] = {
+        description: 'Attempts to modify token payload data',
+        count: payloadTamperAttempts.length,
+        examples: payloadTamperAttempts.slice(0, 3).map(log => log.details)
+      };
     }
 
-    setPatterns(detectedPatterns);
-  };
-
-  const getSeverityBadge = (severity) => {
-    const variant = severity === 'high' ? 'danger' :
-                   severity === 'medium' ? 'warning' : 'info';
-    return <Badge bg={variant}>{severity.toUpperCase()}</Badge>;
+    setDetectedPatterns(patterns);
+    setPatternDetails(details);
   };
 
   return (
-    <Card>
-      <Card.Header>
-        <h5 className="mb-0">Security Pattern Analysis</h5>
-      </Card.Header>
-      <Card.Body>
-        {patterns.length === 0 ? (
-          <p className="text-muted">No suspicious patterns detected</p>
-        ) : (
-          <ListGroup>
-            {patterns.map((pattern, index) => (
-              <ListGroup.Item key={index} className="d-flex justify-content-between align-items-start">
-                <div className="ms-2 me-auto">
-                  <div className="fw-bold">{pattern.type}</div>
-                  {pattern.details}
-                </div>
-                {getSeverityBadge(pattern.severity)}
-              </ListGroup.Item>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom>Security Pattern Analysis</Typography>
+      
+      {!logs || logs.length === 0 ? (
+        <Alert severity="info">No logs available for analysis</Alert>
+      ) : detectedPatterns.length === 0 ? (
+        <Alert severity="success">No suspicious patterns detected in logs</Alert>
+      ) : (
+        <>
+          <Alert severity="warning">
+            {detectedPatterns.length} suspicious pattern{detectedPatterns.length > 1 ? 's' : ''} detected
+          </Alert>
+          <List>
+            {detectedPatterns.map(pattern => (
+              <ListItem key={pattern} component={Paper} elevation={2} sx={{ mb: 2, p: 2 }}>
+                <ListItemText
+                  primary={pattern}
+                  secondary={
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="body2">{patternDetails[pattern]?.description}</Typography>
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        Occurrences: {patternDetails[pattern]?.count || 
+                                     (patternDetails[pattern]?.ips && patternDetails[pattern]?.ips.length)}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </ListItem>
             ))}
-          </ListGroup>
-        )}
-      </Card.Body>
-    </Card>
+          </List>
+        </>
+      )}
+    </Box>
   );
 };
 

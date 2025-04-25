@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Row, Col, Badge } from 'react-bootstrap';
 import axios from 'axios';
 
-const JwtDecoder = ({ token, onTokenChange }) => {
+const JwtDecoder = ({ token = '', onTokenChange }) => {
+  const [inputToken, setInputToken] = useState(token);
   const [header, setHeader] = useState({});
   const [payload, setPayload] = useState({});
   const [signature, setSignature] = useState('');
@@ -10,13 +11,17 @@ const JwtDecoder = ({ token, onTokenChange }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (token) {
-      decodeToken();
-    }
+    setInputToken(token);
   }, [token]);
 
+  useEffect(() => {
+    if (inputToken) {
+      decodeToken();
+    }
+  }, []);
+
   const decodeToken = async () => {
-    if (!token.trim()) {
+    if (!inputToken || !inputToken.trim()) {
       setError('Please enter a JWT token');
       return;
     }
@@ -28,7 +33,7 @@ const JwtDecoder = ({ token, onTokenChange }) => {
       // First try to decode locally, as a fallback
       const localDecode = () => {
         try {
-          const parts = token.split('.');
+          const parts = inputToken.split('.');
           if (parts.length !== 3) {
             throw new Error('Invalid JWT format');
           }
@@ -47,7 +52,7 @@ const JwtDecoder = ({ token, onTokenChange }) => {
 
       // Try to use backend for decoding
       try {
-        const response = await axios.post('http://localhost:8000/decode', { token });
+        const response = await axios.post('http://localhost:8000/decode', { token: inputToken });
         setHeader(response.data.header);
         setPayload(response.data.payload);
         // Check if signature is an object and extract the raw value
@@ -68,7 +73,11 @@ const JwtDecoder = ({ token, onTokenChange }) => {
   };
 
   const handleTokenInput = (e) => {
-    onTokenChange(e.target.value);
+    const newToken = e.target.value;
+    setInputToken(newToken);
+    if (onTokenChange) {
+      onTokenChange(newToken);
+    }
   };
 
   const formatJson = (obj) => {
@@ -137,7 +146,7 @@ const JwtDecoder = ({ token, onTokenChange }) => {
           <Form.Control
             as="textarea"
             rows={3}
-            value={token}
+            value={inputToken}
             onChange={handleTokenInput}
             placeholder="Paste your JWT token here..."
           />
@@ -145,7 +154,7 @@ const JwtDecoder = ({ token, onTokenChange }) => {
         <Button 
           variant="primary" 
           onClick={decodeToken} 
-          disabled={loading || !token.trim()}
+          disabled={loading || !inputToken || !inputToken.trim()}
         >
           {loading ? 'Decoding...' : 'Decode Token'}
         </Button>

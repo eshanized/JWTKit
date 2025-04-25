@@ -1,0 +1,152 @@
+[0;34m=========================================[0m
+[0;32m   Starting JWTKit - JWT Analysis Tool   [0m
+[0;34m=========================================[0m
+[0;34mInstalling backend dependencies...[0m
+Requirement already satisfied: werkzeug==2.2.3 in ./flask_env/lib/python3.13/site-packages (2.2.3)
+Requirement already satisfied: flask==2.2.3 in ./flask_env/lib/python3.13/site-packages (2.2.3)
+Requirement already satisfied: flask-cors==3.0.10 in ./flask_env/lib/python3.13/site-packages (3.0.10)
+Requirement already satisfied: pyjwt==2.6.0 in ./flask_env/lib/python3.13/site-packages (2.6.0)
+Requirement already satisfied: python-multipart==0.0.6 in ./flask_env/lib/python3.13/site-packages (0.0.6)
+Requirement already satisfied: cryptography==40.0.2 in ./flask_env/lib/python3.13/site-packages (40.0.2)
+Requirement already satisfied: requests==2.30.0 in ./flask_env/lib/python3.13/site-packages (2.30.0)
+Requirement already satisfied: sqlalchemy==1.4.40 in ./flask_env/lib/python3.13/site-packages (1.4.40)
+Requirement already satisfied: passlib==1.7.4 in ./flask_env/lib/python3.13/site-packages (1.7.4)
+Requirement already satisfied: python-dotenv==1.0.0 in ./flask_env/lib/python3.13/site-packages (1.0.0)
+Requirement already satisfied: MarkupSafe>=2.1.1 in ./flask_env/lib/python3.13/site-packages (from werkzeug==2.2.3) (3.0.2)
+Requirement already satisfied: Jinja2>=3.0 in ./flask_env/lib/python3.13/site-packages (from flask==2.2.3) (3.1.6)
+Requirement already satisfied: itsdangerous>=2.0 in ./flask_env/lib/python3.13/site-packages (from flask==2.2.3) (2.2.0)
+Requirement already satisfied: click>=8.0 in ./flask_env/lib/python3.13/site-packages (from flask==2.2.3) (8.1.8)
+Requirement already satisfied: Six in ./flask_env/lib/python3.13/site-packages (from flask-cors==3.0.10) (1.17.0)
+Requirement already satisfied: cffi>=1.12 in ./flask_env/lib/python3.13/site-packages (from cryptography==40.0.2) (1.17.1)
+Requirement already satisfied: charset-normalizer<4,>=2 in ./flask_env/lib/python3.13/site-packages (from requests==2.30.0) (3.4.1)
+Requirement already satisfied: idna<4,>=2.5 in ./flask_env/lib/python3.13/site-packages (from requests==2.30.0) (3.10)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./flask_env/lib/python3.13/site-packages (from requests==2.30.0) (2.4.0)
+Requirement already satisfied: certifi>=2017.4.17 in ./flask_env/lib/python3.13/site-packages (from requests==2.30.0) (2025.1.31)
+Requirement already satisfied: greenlet!=0.4.17 in ./flask_env/lib/python3.13/site-packages (from sqlalchemy==1.4.40) (3.2.1)
+Requirement already satisfied: pycparser in ./flask_env/lib/python3.13/site-packages (from cffi>=1.12->cryptography==40.0.2) (2.22)
+[0;32mStarting backend server...[0m
+[0;34mInstalling frontend dependencies...[0m
+2025-04-25 20:51:44,418 - root - WARNING - Advanced modules not found. Some features will be disabled.
+2025-04-25 20:51:44,420 - jwtkit - WARNING - Could not import attack routes from app.py
+2025-04-25 20:51:44,424 - advanced_api - INFO - Advanced API endpoints registered
+2025-04-25 20:51:44,424 - jwtkit - INFO - Advanced API registered successfully
+ * Serving Flask app 'flask_app'
+ * Debug mode: on
+2025-04-25 20:51:44,446 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.1.86:8000
+2025-04-25 20:51:44,447 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-25 20:51:44,449 - werkzeug - INFO -  * Restarting with stat
+2025-04-25 20:51:44,613 - root - WARNING - Advanced modules not found. Some features will be disabled.
+2025-04-25 20:51:44,615 - jwtkit - WARNING - Could not import attack routes from app.py
+2025-04-25 20:51:44,618 - advanced_api - INFO - Advanced API endpoints registered
+2025-04-25 20:51:44,619 - jwtkit - INFO - Advanced API registered successfully
+2025-04-25 20:51:44,628 - werkzeug - WARNING -  * Debugger is active!
+2025-04-25 20:51:44,629 - werkzeug - INFO -  * Debugger PIN: 936-448-502
+npm error code ERESOLVE
+npm error ERESOLVE could not resolve
+npm error
+npm error While resolving: react-dom@19.1.0
+npm error Found: react@18.3.1
+npm error node_modules/react
+npm error   react@"^18.2.0" from the root project
+npm error   peer react@"^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1" from @react-aria/ssr@3.9.8
+npm error   node_modules/@react-aria/ssr
+npm error     @react-aria/ssr@"^3.5.0" from @restart/ui@1.9.4
+npm error     node_modules/@restart/ui
+npm error       @restart/ui@"^1.9.4" from react-bootstrap@2.10.9
+npm error       node_modules/react-bootstrap
+npm error         react-bootstrap@"^2.7.4" from the root project
+npm error   14 more (@restart/hooks, @restart/ui, @restart/hooks, ...)
+npm error
+npm error Could not resolve dependency:
+npm error peer react@"^19.1.0" from react-dom@19.1.0
+npm error node_modules/react-dom
+npm error   react-dom@"^19.1.0" from the root project
+npm error   peer react-dom@">=16.14.0" from @restart/ui@1.9.4
+npm error   node_modules/@restart/ui
+npm error     @restart/ui@"^1.9.4" from react-bootstrap@2.10.9
+npm error     node_modules/react-bootstrap
+npm error       react-bootstrap@"^2.7.4" from the root project
+npm error   7 more (@testing-library/react, react-bootstrap, react-router, ...)
+npm error
+npm error Conflicting peer dependency: react@19.1.0
+npm error node_modules/react
+npm error   peer react@"^19.1.0" from react-dom@19.1.0
+npm error   node_modules/react-dom
+npm error     react-dom@"^19.1.0" from the root project
+npm error     peer react-dom@">=16.14.0" from @restart/ui@1.9.4
+npm error     node_modules/@restart/ui
+npm error       @restart/ui@"^1.9.4" from react-bootstrap@2.10.9
+npm error       node_modules/react-bootstrap
+npm error         react-bootstrap@"^2.7.4" from the root project
+npm error     7 more (@testing-library/react, react-bootstrap, react-router, ...)
+npm error
+npm error Fix the upstream dependency conflict, or retry
+npm error this command with --force or --legacy-peer-deps
+npm error to accept an incorrect (and potentially broken) dependency resolution.
+npm error
+npm error
+npm error For a full report see:
+npm error /home/whoami/.npm/_logs/2025-04-25T15_21_44_333Z-eresolve-report.txt
+npm error A complete log of this run can be found in: /home/whoami/.npm/_logs/2025-04-25T15_21_44_333Z-debug-0.log
+[0;32mStarting frontend server...[0m
+[0;32mJWTKit is running![0m
+[0;34m- Backend:[0m http://localhost:8000
+[0;34m- Frontend:[0m http://localhost:3000
+[0;34m- API Docs:[0m http://localhost:8000/docs
+[0;34m----------------------------------------[0m
+Press Ctrl+C to stop both servers
+
+> jwtkit@0.1.0 start
+> react-scripts start
+
+(node:68630) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:68630) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Failed to compile.
+
+Module not found: Error: Can't resolve './components/Dashboard' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+ERROR in ./src/App.js 14:0-47
+Module not found: Error: Can't resolve './components/Dashboard' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 29:0-44
+Module not found: Error: Can't resolve './components/auth/Login' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 30:0-50
+Module not found: Error: Can't resolve './components/auth/Register' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 31:0-48
+Module not found: Error: Can't resolve './components/auth/Profile' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 33:0-75
+Module not found: Error: Can't resolve './components/SecurityRecommendations' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 34:0-69
+Module not found: Error: Can't resolve './components/AttackVectorAnalysis' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 35:0-49
+Module not found: Error: Can't resolve './components/KeyManager' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 36:0-45
+Module not found: Error: Can't resolve './components/Settings' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 37:0-59
+Module not found: Error: Can't resolve './components/ReportGenerator' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 38:0-52
+Module not found: Error: Can't resolve './components/layout/NotFound' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 44:0-55
+Module not found: Error: Can't resolve './context/ToastContext' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/App.js 45:0-55
+Module not found: Error: Can't resolve './context/ThemeContext' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src'
+
+ERROR in ./src/components/layout/Header.js 8:0-58
+Module not found: Error: Can't resolve '../../context/ThemeContext' in '/home/whoami/Desktop/0TIVision/JWTKit/frontend/src/components/layout'
+
+webpack compiled with 13 errors

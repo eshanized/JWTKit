@@ -1,41 +1,49 @@
-import React from 'react';
-import { Toast as BootstrapToast } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
 
-const Toast = ({ show, onClose, variant, title, message }) => {
+const Toast = ({ id, type, message, onClose }) => {
+  const [visible, setVisible] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setVisible(false);
+      setTimeout(onClose, 300); // Give time for animation
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [onClose]);
+  
   const getIcon = () => {
-    switch (variant) {
+    switch (type) {
       case 'success':
-        return 'fa-check-circle';
-      case 'danger':
-        return 'fa-exclamation-circle';
+        return '✓';
+      case 'error':
+        return '✕';
       case 'warning':
-        return 'fa-exclamation-triangle';
+        return '⚠';
       case 'info':
       default:
-        return 'fa-info-circle';
+        return 'ℹ';
     }
   };
 
   return (
-    <BootstrapToast 
-      show={show} 
-      onClose={onClose} 
-      delay={3000} 
-      autohide
-      className={`bg-${variant} text-white`}
-    >
-      <BootstrapToast.Header closeButton={false} className="border-0">
-        <i className={`fas ${getIcon()} me-2`}></i>
-        <strong className="me-auto">{title}</strong>
-        <button 
-          type="button" 
-          className="btn-close btn-close-white" 
-          onClick={onClose}
-          aria-label="Close"
-        ></button>
-      </BootstrapToast.Header>
-      <BootstrapToast.Body>{message}</BootstrapToast.Body>
-    </BootstrapToast>
+    <div className={`toast ${type || 'info'} ${visible ? 'visible' : 'hiding'}`}>
+      <div className="toast-content">
+        <span className="toast-icon">{getIcon()}</span>
+        <span className="toast-message">{message}</span>
+      </div>
+      <button 
+        type="button" 
+        className="toast-close" 
+        onClick={() => {
+          setVisible(false);
+          setTimeout(onClose, 300);
+        }}
+        aria-label="Close"
+      >
+        ×
+      </button>
+    </div>
   );
 };
 

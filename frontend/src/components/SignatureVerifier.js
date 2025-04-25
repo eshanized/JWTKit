@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Form, Button, Card, Alert, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 
-const SignatureVerifier = ({ token }) => {
+const SignatureVerifier = ({ token = '' }) => {
+  const [inputToken, setInputToken] = useState(token);
   const [secret, setSecret] = useState('');
   const [publicKey, setPublicKey] = useState('');
   const [algorithm, setAlgorithm] = useState('HS256');
@@ -10,6 +11,11 @@ const SignatureVerifier = ({ token }) => {
   const [loading, setLoading] = useState(false);
   const [keysLoading, setKeysLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Update internal state when prop changes
+  React.useEffect(() => {
+    setInputToken(token);
+  }, [token]);
 
   const algorithms = [
     { value: 'HS256', label: 'HS256 (HMAC + SHA256)' },
@@ -58,7 +64,7 @@ const SignatureVerifier = ({ token }) => {
   };
 
   const verifySignature = async () => {
-    if (!token.trim()) {
+    if (!inputToken || !inputToken.trim()) {
       setError('Please enter a JWT token first');
       return;
     }
@@ -77,7 +83,7 @@ const SignatureVerifier = ({ token }) => {
 
     try {
       const requestData = {
-        token,
+        token: inputToken,
         algorithm
       };
       
@@ -98,18 +104,30 @@ const SignatureVerifier = ({ token }) => {
     }
   };
 
+  const handleTokenInput = (e) => {
+    setInputToken(e.target.value);
+  };
+
   return (
     <div>
       <h2>JWT Signature Verifier</h2>
       <p>Verify the signature of a JWT using your secret key</p>
       
-      {!token && (
-        <Alert variant="info">
-          Enter a JWT in the decoder tab to verify its signature
-        </Alert>
-      )}
-      
       <Form>
+        <Form.Group className="mb-3">
+          <Form.Label>JWT Token</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={3}
+            value={inputToken}
+            onChange={handleTokenInput}
+            placeholder="Paste your JWT token here..."
+          />
+          <Form.Text className="text-muted">
+            Enter the JWT token to verify its signature
+          </Form.Text>
+        </Form.Group>
+
         <Form.Group className="mb-3">
           <Form.Label>Algorithm</Form.Label>
           <Form.Select
@@ -161,7 +179,7 @@ const SignatureVerifier = ({ token }) => {
         <Button
           variant="primary"
           onClick={verifySignature}
-          disabled={loading || !token.trim() || (isAsymmetric(algorithm) ? !publicKey.trim() : !secret.trim())}
+          disabled={loading || !inputToken || !inputToken.trim() || (isAsymmetric(algorithm) ? !publicKey.trim() : !secret.trim())}
         >
           {loading ? 'Verifying...' : 'Verify Signature'}
         </Button>

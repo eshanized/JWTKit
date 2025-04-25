@@ -4,12 +4,13 @@
 <p align="center">Web-Based JWT Attacker & Analyzer Toolkit</p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/features-8+-4361EE" alt="Features"/>
+  <img src="https://img.shields.io/badge/features-10+-4361EE" alt="Features"/>
   <img src="https://img.shields.io/badge/setup-easy-0BB37E" alt="Setup"/>
   <img src="https://img.shields.io/badge/license-MIT-4CC9F0" alt="License"/>
-  <img src="https://img.shields.io/badge/version-1.0.0-F9A826" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-1.1.0-F9A826" alt="Version"/>
   <img src="https://img.shields.io/badge/react-%5E18.0.0-61DAFB" alt="React"/>
   <img src="https://img.shields.io/badge/python-%5E3.8-3776AB" alt="Python"/>
+  <img src="https://img.shields.io/badge/deployment-github%20pages-222222" alt="Deployment"/>
 </p>
 
 <p align="center">
@@ -17,6 +18,7 @@
   <a href="#-key-features">Features</a> •
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-getting-started">Installation</a> •
+  <a href="#-recent-updates">Recent Updates</a> •
   <a href="#%EF%B8%8F-legal-disclaimer">Disclaimer</a> •
   <a href="#-license">License</a>
 </p>
@@ -75,13 +77,25 @@
       <p>Bypass token expiration constraints by modifying timestamps.</p>
     </td>
   </tr>
+  <tr>
+    <td width="50%">
+      <h3>🔐 Key Management</h3>
+      <p>Create, store, and manage cryptographic keys for JWT operations including RSA, EC, and HMAC.</p>
+    </td>
+    <td width="50%">
+      <h3>📊 Security Pattern Detection</h3>
+      <p>Analyze logs to identify attack patterns such as brute force attempts and algorithm confusion attacks.</p>
+    </td>
+  </tr>
 </table>
 
 Additional features:
 - 📚 **Payload Template Library**: Common attack patterns
 - 📝 **Pentest Report Generator**: Document findings professionally
 - 🔌 **REST API Mode**: Automate JWT testing workflows
-- 👥 **Multi-User Dashboard**: Team collaboration (optional)
+- 👥 **Multi-User Dashboard**: Team collaboration
+- 📋 **Audit Logging System**: Track actions and detect potential attacks
+- 🔍 **Token Comparison Tool**: Compare different tokens side by side
 
 ## 🧱 Tech Stack
 
@@ -97,8 +111,8 @@ Additional features:
         <br>Python
       </td>
       <td align="center" width="96">
-        <img src="https://img.icons8.com/color/48/000000/bootstrap.png" width="48" height="48" alt="Bootstrap" />
-        <br>Bootstrap
+        <img src="https://img.icons8.com/color/48/000000/material-ui.png" width="48" height="48" alt="Material UI" />
+        <br>Material UI
       </td>
     </tr>
     <tr>
@@ -178,6 +192,28 @@ npm start
 
 Open your browser and navigate to `http://localhost:3000`
 </details>
+
+<details>
+<summary><b>6. Quick start script</b></summary>
+
+For convenience, you can also use the provided start script:
+```bash
+./start_app.sh
+```
+This will check for required dependencies, set up the environment, and start both servers.
+</details>
+
+## 🔄 Recent Updates
+
+- **Key Management System**: Added comprehensive key management for creating and managing cryptographic keys (RSA, EC, HMAC)
+- **Security Pattern Detection**: New component to analyze logs and identify attack patterns
+- **Improved Error Handling**: Enhanced error handling throughout the application, especially for JSON request processing
+- **Authentication Enhancements**: Updated Login component with improved styles and error handling
+- **Deployment Change**: Migrated from GitLab CI to GitHub Pages deployment
+- **Public Routes**: Made all routes public to improve accessibility for demo purposes
+- **Documentation**: Added detailed CHANGELOG.md to track project evolution
+
+For a complete list of changes, see the [CHANGELOG.md](./CHANGELOG.md) file.
 
 ## ⚠️ Legal Disclaimer
 

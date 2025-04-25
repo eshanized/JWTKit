@@ -593,5 +593,13 @@ def test_endpoint():
     except Exception as e:
         return jsonify({"error": f"Error testing endpoint: {str(e)}"}), 400
 
+@app.route('/api/health', methods=['GET'])
+def api_health_check():
+    """API health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "version": "2.0.0"
+    })
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
