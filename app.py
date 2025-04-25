@@ -539,6 +539,14 @@ def test_endpoint():
         if is_private_ip(resolved_ip):
             return jsonify({"error": "URL resolves to a private or disallowed IP"}), 400
         
+        # Resolve the hostname to an IP address
+        resolved_ip = socket.gethostbyname(parsed_url.hostname)
+        
+        # Verify the resolved IP is not private or disallowed
+        if is_private_ip(resolved_ip):
+            return jsonify({"error": "URL resolves to a private or disallowed IP"}), 400
+        
+        # Verify the hostname matches the allowed domains exactly
         if parsed_url.hostname not in allowed_domains:
             return jsonify({"error": "URL domain is not allowed"}), 400
     except Exception as e:
