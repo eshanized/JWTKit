@@ -69,7 +69,7 @@ def docs():
     try:
         # Try to serve static documentation if available
         return send_from_directory('static', 'docs.html')
-    except:
+    except Exception:
         # Otherwise return JSON endpoints documentation
         endpoints = [
             {
