@@ -521,10 +521,24 @@ def test_endpoint():
     # Validate the URL
     from urllib.parse import urlparse
     allowed_domains = ["example.com", "api.example.com"]
+    def is_private_ip(ip):
+        import ipaddress
+        try:
+            ip_obj = ipaddress.ip_address(ip)
+            return ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved
+        except ValueError:
+            return True
+    
     try:
         parsed_url = urlparse(url)
         if parsed_url.scheme not in ["http", "https"]:
             return jsonify({"error": "Invalid URL scheme"}), 400
+        
+        import socket
+        resolved_ip = socket.gethostbyname(parsed_url.hostname)
+        if is_private_ip(resolved_ip):
+            return jsonify({"error": "URL resolves to a private or disallowed IP"}), 400
+        
         if parsed_url.hostname not in allowed_domains:
             return jsonify({"error": "URL domain is not allowed"}), 400
     except Exception as e:
