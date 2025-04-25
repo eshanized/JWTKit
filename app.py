@@ -517,6 +517,18 @@ def test_endpoint():
     data = request.json or {}
     token = data.get('token')
     url = data.get('url')
+    
+    # Validate the URL
+    from urllib.parse import urlparse
+    allowed_domains = ["example.com", "api.example.com"]
+    try:
+        parsed_url = urlparse(url)
+        if parsed_url.scheme not in ["http", "https"]:
+            return jsonify({"error": "Invalid URL scheme"}), 400
+        if parsed_url.hostname not in allowed_domains:
+            return jsonify({"error": "URL domain is not allowed"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Invalid URL: {str(e)}"}), 400
     method = data.get('method', 'GET').upper()
     
     if not token:
