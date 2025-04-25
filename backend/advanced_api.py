@@ -29,7 +29,7 @@ try:
     from attack_simulator import JWTSecurityTester as ExternalJWTSecurityTester
     has_advanced_modules = True
 except ImportError:
-    print("Warning: Advanced modules not found. Some features will be disabled.")
+    logging.warning("Advanced modules not found. Some features will be disabled.")
     has_advanced_modules = False
     
     # Define fallback classes to prevent errors
