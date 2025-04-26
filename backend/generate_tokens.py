@@ -28,7 +28,7 @@ def generate_hs256_token(secret=None, expiration_days=1, claims=None):
     """Generate a secure HS256 token with appropriate claims"""
     if secret is None:
         secret = generate_secure_secret()
-        print(f"Generated secure secret: {secret}")
+        # Removed printing of secret to avoid clear-text logging
     
     # Default claims
     default_claims = {
@@ -91,16 +91,15 @@ def main():
         token, secret = generate_hs256_token(args.secret, args.exp, custom_claims)
         print("\n===== HS256 Token =====")
         print(token)
-        print("\n===== Secret =====")
-        print(secret)
+        # Removed printing of secret to avoid clear-text logging
     
     elif args.alg == 'RS256':
         token, private_key, public_key = generate_rs256_token(custom_claims)
         if token:
             print("\n===== RS256 Token =====")
             print(token)
-            print("\n===== RSA Private Key =====")
-            print(private_key)
+            # Removed printing of private key to avoid clear-text logging
+            # Public key can be printed as it is not sensitive
             print("\n===== RSA Public Key =====")
             print(public_key)
     
