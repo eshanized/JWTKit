@@ -19,7 +19,8 @@ import logging
 try:
     import jwt
 except ImportError:
-    print("Error: PyJWT not installed. Run: pip install pyjwt")
+    import logging
+    logging.error("Error: PyJWT not installed. Run: pip install pyjwt")
     jwt = None
 
 # Import our custom modules
@@ -591,10 +592,12 @@ def audit_token():
                     # Get the appropriate key material
                     key_type = key_data.get('kty', '').upper()
                     if key_type == 'HMAC':
-                        key = base64.b64decode(key_data['k'])
+                        key_bytes = base64.b64decode(key_data['k'])
                         # Ensure key is string for jwt.decode
-                        if isinstance(key, bytes):
-                            key = key.decode('utf-8')
+                        if isinstance(key_bytes, bytes):
+                            key = key_bytes.decode('utf-8')
+                        else:
+                            key = key_bytes
                     elif key_type in ['RSA', 'EC', 'OKP']:
                         key = key_data['public_key']
                     else:
