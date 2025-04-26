@@ -341,7 +341,6 @@ def verify_managed_token():
         header = json.loads(header_json)
 
         kid = header.get('kid')
-        alg = header.get('alg')
 
         if not kid:
             return jsonify({"error": "Token does not contain a key ID (kid)"}), 400
