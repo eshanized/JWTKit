@@ -426,7 +426,7 @@ def jwks_spoofing():
             key_size=2048,
             backend=default_backend()
         )
-        public_key = private_key.public_key()
+
         
         # Create a unique key ID
         kid = f"attacker-key-{int(time.time())}"
