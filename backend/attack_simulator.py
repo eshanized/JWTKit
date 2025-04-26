@@ -105,7 +105,7 @@ class JWTSecurityTester:
                 encoded_payload = base64.b64encode(json.dumps(payload).encode()).decode().rstrip('=')
                 
                 # Create signature using the public key as the secret
-                signature_part = f"{encoded_header}.{encoded_payload}"
+                
                 forged_signature = jwt.encode(
                     payload, 
                     public_key_bytes, 
