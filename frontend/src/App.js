@@ -35,6 +35,7 @@ import ReportGenerator from './components/ReportGenerator';
 import NotFound from './components/layout/NotFound';
 // import Toast from './components/Toast';
 import ToastContainer from './components/ToastContainer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Context
 import AuthContext, { AuthProvider } from './context/AuthContext';
@@ -56,12 +57,14 @@ function App() {
   
   // Initialize auth state
   useEffect(() => {
+    console.log('App useEffect: checking token and auth status');
     const token = localStorage.getItem('token');
     
     if (token) {
       setAuthToken(token);
       checkAuthStatus();
     } else {
+      console.log('No token found, setting isLoading to false');
       setIsLoading(false);
     }
     
@@ -91,7 +94,9 @@ function App() {
   // Verify token and load user data
   const checkAuthStatus = async () => {
     try {
+      console.log('Checking auth status...');
       const response = await axios.get('/api/auth/user');
+      console.log('Auth status response:', response);
       setUser(response.data);
       setIsAuthenticated(true);
     } catch (error) {
@@ -99,6 +104,7 @@ function App() {
       localStorage.removeItem('token');
       setAuthToken(null);
     } finally {
+      console.log('Setting isLoading to false');
       setIsLoading(false);
     }
   };
@@ -142,6 +148,7 @@ function App() {
   };
   
   if (isLoading) {
+    console.log('App is loading...');
     return (
       <div className="app-loading">
         <div className="spinner"></div>
@@ -151,52 +158,54 @@ function App() {
   }
   
   return (
-    <ThemeProvider value={{ theme, toggleTheme }}>
-      <AuthProvider value={{ isAuthenticated, user, login: handleLogin, logout: handleLogout }}>
-        <ToastProvider>
-          <Router>
-            <div className={`app ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-              <Header toggleSidebar={toggleSidebar} />
-              <Sidebar isOpen={sidebarOpen} />
-              <main className="main-content">
-                <Routes>
-                  {/* All routes are now public */}
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/decode" element={<JwtDecoder />} />
-                  <Route path="/verify" element={<SignatureVerifier />} />
-                  <Route path="/vulnerabilities" element={<VulnerabilityScanner />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/modify" element={<PayloadEditor />} />
-                  <Route path="/attacks/algorithm-confusion" element={<AlgorithmConfusion />} />
-                  <Route path="/attacks/brute-force" element={<BruteForceEngine />} />
-                  <Route path="/tokens/test" element={<TokenTester />} />
-                  <Route path="/tokens/fuzzer" element={<TokenFuzzer />} />
-                  <Route path="/tokens/history" element={<TokenHistory />} />
-                  <Route path="/tokens/compare" element={<TokenComparison />} />
-                  <Route path="/analytics" element={<AttackAnalytics />} />
-                  <Route path="/attack-vectors" element={<AttackVectorAnalysis />} />
-                  <Route path="/security-patterns" element={<SecurityPatternDetector logs={auditLogs} />} />
-                  <Route path="/audit" element={<AuditLog />} />
-                  <Route path="/attack-simulator" element={<AttackSimulator />} />
-                  <Route path="/validation" element={<ValidationFeedback />} />
-                  <Route path="/recommendations" element={<SecurityRecommendations />} />
-                  <Route path="/keys" element={<KeyManager />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/reports" element={<ReportGenerator />} />
-                  
-                  {/* Fallback route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-              <ToastContainer />
-            </div>
-          </Router>
-        </ToastProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider value={{ theme, toggleTheme }}>
+        <AuthProvider value={{ isAuthenticated, user, login: handleLogin, logout: handleLogout }}>
+          <ToastProvider>
+            <Router>
+              <div className={`app ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+                <Header toggleSidebar={toggleSidebar} />
+                <Sidebar isOpen={sidebarOpen} />
+                <main className="main-content">
+                  <Routes>
+                    {/* All routes are now public */}
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/decode" element={<JwtDecoder />} />
+                    <Route path="/verify" element={<SignatureVerifier />} />
+                    <Route path="/vulnerabilities" element={<VulnerabilityScanner />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/modify" element={<PayloadEditor />} />
+                    <Route path="/attacks/algorithm-confusion" element={<AlgorithmConfusion />} />
+                    <Route path="/attacks/brute-force" element={<BruteForceEngine />} />
+                    <Route path="/tokens/test" element={<TokenTester />} />
+                    <Route path="/tokens/fuzzer" element={<TokenFuzzer />} />
+                    <Route path="/tokens/history" element={<TokenHistory />} />
+                    <Route path="/tokens/compare" element={<TokenComparison />} />
+                    <Route path="/analytics" element={<AttackAnalytics />} />
+                    <Route path="/attack-vectors" element={<AttackVectorAnalysis />} />
+                    <Route path="/security-patterns" element={<SecurityPatternDetector logs={auditLogs} />} />
+                    <Route path="/audit" element={<AuditLog />} />
+                    <Route path="/attack-simulator" element={<AttackSimulator />} />
+                    <Route path="/validation" element={<ValidationFeedback />} />
+                    <Route path="/recommendations" element={<SecurityRecommendations />} />
+                    <Route path="/keys" element={<KeyManager />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/reports" element={<ReportGenerator />} />
+                    
+                    {/* Fallback route */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+                <ToastContainer />
+              </div>
+            </Router>
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
