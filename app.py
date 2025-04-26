@@ -518,69 +518,78 @@ def test_endpoint():
     data = request.json or {}
     token = data.get('token')
     url = data.get('url')
-    
+
     if not token:
         return jsonify({"error": "Token is required"}), 400
-        
+
     if not url:
         return jsonify({"error": "URL is required"}), 400
-    
+
     # Define allowed domains in one place
     allowed_domains = {"example.com", "api.example.com"}
-    
+
     # Validate the URL to prevent SSRF
     try:
         from urllib.parse import urlparse
         import ipaddress
         import socket
-        
+        import idna
+
         parsed_url = urlparse(url)
-        
+
         # 1. Ensure the scheme is http or https
         if parsed_url.scheme not in {"http", "https"}:
             return jsonify({"error": "Invalid URL scheme. Only HTTP and HTTPS are allowed"}), 400
-        
+
         # 2. Extract the hostname for validation
         hostname = parsed_url.hostname
         if not hostname:
             return jsonify({"error": "Invalid URL: missing hostname"}), 400
-        
-        # 3. Block direct IP addresses (both IPv4 and IPv6)
+
+        # 3. Normalize hostname to ASCII using IDNA to prevent punycode attacks
         try:
-            ipaddress.ip_address(hostname)
+            hostname_ascii = idna.encode(hostname).decode('ascii')
+        except idna.IDNAError:
+            return jsonify({"error": "Invalid hostname encoding"}), 400
+
+        # 4. Block direct IP addresses (both IPv4 and IPv6)
+        try:
+            ipaddress.ip_address(hostname_ascii)
             return jsonify({"error": "IP addresses are not allowed in URLs"}), 400
         except ValueError:
             # Not an IP address, continue with validation
             pass
-            
-        # 4. Strict domain validation with exact matching
+
+        # 5. Strict domain validation with exact matching and subdomain check
         domain_allowed = False
         for domain in allowed_domains:
-            if hostname == domain or hostname.endswith(f".{domain}"):
+            domain_ascii = idna.encode(domain).decode('ascii')
+            if hostname_ascii == domain_ascii or hostname_ascii.endswith(f".{domain_ascii}"):
                 domain_allowed = True
                 break
-                
+
         if not domain_allowed:
             return jsonify({"error": "URL domain is not allowed"}), 400
-            
+
     except Exception as e:
         return jsonify({"error": f"Invalid URL: {str(e)}"}), 400
-        
+
     method = data.get('method', 'GET').upper()
     if method not in ['GET', 'POST', 'PUT', 'DELETE']:
         return jsonify({"error": f"Unsupported HTTP method: {method}"}), 400
-    
+
     try:
         import requests
         import socket
-        
+        import ipaddress
+
         # Store original socket.create_connection function
         original_create_connection = socket.create_connection
-        
+
         # Override socket connection creation for defense-in-depth
         def patched_create_connection(address, *args, **kwargs):
             host, port = address
-            
+
             # Verify IP address isn't a loopback, private or reserved address
             try:
                 ip = ipaddress.ip_address(socket.gethostbyname(host))
@@ -589,50 +598,60 @@ def test_endpoint():
             except socket.gaierror:
                 # DNS resolution failed
                 raise ValueError(f"Unable to resolve hostname: {host}")
-                
+
             # Double-check domain is allowed
             domain_allowed = False
             for domain in allowed_domains:
-                if host == domain or host.endswith(f".{domain}"):
+                domain_ascii = idna.encode(domain).decode('ascii')
+                if host == domain_ascii or host.endswith(f".{domain_ascii}"):
                     domain_allowed = True
                     break
-                    
+
             if not domain_allowed:
                 raise ValueError(f"Connection to {host} is not allowed")
-                
+
             return original_create_connection(address, *args, **kwargs)
-        
+
         # Apply patch
         socket.create_connection = patched_create_connection
-        
+
         try:
             # Prepare headers with Authorization
             headers = {
                 "Authorization": f"Bearer {token}"
             }
-            
-            # Make the request with a reduced timeout
+
+            # Make the request with a reduced timeout and limit redirects
+            session = requests.Session()
+            session.max_redirects = 3
+
             if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=5)
+                response = session.get(url, headers=headers, timeout=5, allow_redirects=True)
             elif method == 'POST':
-                response = requests.post(url, headers=headers, json={}, timeout=5)
+                response = session.post(url, headers=headers, json={}, timeout=5, allow_redirects=True)
             elif method == 'PUT':
-                response = requests.put(url, headers=headers, json={}, timeout=5)
+                response = session.put(url, headers=headers, json={}, timeout=5, allow_redirects=True)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers, timeout=5)
-            
+                response = session.delete(url, headers=headers, timeout=5, allow_redirects=True)
+
+            # Limit response size to prevent resource exhaustion
+            max_response_size = 1024 * 1024  # 1 MB
+            content = response.content
+            if len(content) > max_response_size:
+                return jsonify({"error": "Response size exceeds limit"}), 400
+
             # Return response details
             return jsonify({
                 "success": True,
                 "status_code": response.status_code,
                 "response_headers": dict(response.headers),
-                "response_text": response.text,
+                "response_text": content.decode('utf-8', errors='replace'),
                 "message": f"Request completed with status code: {response.status_code}"
             })
         finally:
             # Restore original function regardless of success/failure
             socket.create_connection = original_create_connection
-            
+
     except requests.exceptions.Timeout:
         return jsonify({
             "success": False,
@@ -640,7 +659,7 @@ def test_endpoint():
         })
     except requests.exceptions.ConnectionError:
         return jsonify({
-            "success": False, 
+            "success": False,
             "error": "Connection error, check the URL"
         })
     except ValueError as ve:
