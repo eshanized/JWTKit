@@ -330,7 +330,8 @@ def brute_force():
                     secret = secret.encode('utf-8')
                     
                 # Try to verify with this secret
-                decoded = jwt.decode(token, secret, algorithms=[algorithm])
+                secret_str = secret.decode('utf-8') if isinstance(secret, bytes) else str(secret)
+                decoded = jwt.decode(token, secret_str, algorithms=[algorithm])
                 
                 # If we get here without an exception, we found the secret
                 return jsonify({
