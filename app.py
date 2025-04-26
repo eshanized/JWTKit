@@ -529,6 +529,12 @@ def test_endpoint():
     # Define allowed domains in one place
     allowed_domains = {"example.com", "api.example.com"}
 
+    # Validate the domain of the provided URL
+    from urllib.parse import urlparse
+    parsed_url = urlparse(url)
+    if parsed_url.netloc not in allowed_domains:
+        return jsonify({"error": "URL domain is not allowed"}), 400
+
     # Define allowed ports for HTTP/HTTPS
     allowed_ports = {80, 443}
 
