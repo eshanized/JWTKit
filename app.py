@@ -529,12 +529,16 @@ def test_endpoint():
     # Define allowed domains in one place
     allowed_domains = {"example.com", "api.example.com"}
 
+    # Define allowed ports for HTTP/HTTPS
+    allowed_ports = {80, 443}
+
     # Validate the URL to prevent SSRF
     try:
         from urllib.parse import urlparse
         import ipaddress
         import socket
         import idna
+        import logging
 
         parsed_url = urlparse(url)
 
@@ -542,8 +546,9 @@ def test_endpoint():
         if parsed_url.scheme not in {"http", "https"}:
             return jsonify({"error": "Invalid URL scheme. Only HTTP and HTTPS are allowed"}), 400
 
-        # 2. Extract the hostname for validation
+        # 2. Extract the hostname and port for validation
         hostname = parsed_url.hostname
+        port = parsed_url.port or (443 if parsed_url.scheme == "https" else 80)
         if not hostname:
             return jsonify({"error": "Invalid URL: missing hostname"}), 400
 
@@ -572,7 +577,11 @@ def test_endpoint():
         if not domain_allowed:
             return jsonify({"error": "URL domain is not allowed"}), 400
 
-    except Exception as e:
+        # 6. Check if port is allowed
+        if port not in allowed_ports:
+            return jsonify({"error": f"Port {port} is not allowed"}), 400
+
+    except Exception:
         return jsonify({"error": "Invalid URL"}), 400
 
     method = data.get('method', 'GET').upper()
@@ -599,6 +608,8 @@ def test_endpoint():
                     ip_str = sockaddr[0]
                     ip = ipaddress.ip_address(ip_str)
                     if ip.is_loopback or ip.is_private or ip.is_reserved or ip.is_link_local or ip.is_multicast:
+                        # Log blocked connection attempt
+                        logging.warning(f"Blocked connection to internal/reserved IP address {ip}")
                         raise ValueError(f"Connection to internal/reserved IP address {ip} is not allowed")
             except socket.gaierror:
                 # DNS resolution failed
@@ -613,6 +624,8 @@ def test_endpoint():
                     break
 
             if not domain_allowed:
+                # Log blocked domain attempt
+                logging.warning(f"Blocked connection to disallowed domain {host}")
                 raise ValueError(f"Connection to {host} is not allowed")
 
             return original_create_connection(address, *args, **kwargs)
@@ -672,7 +685,7 @@ def test_endpoint():
             "success": False,
             "error": str(ve)
         }), 400
-    except Exception as e:
+    except Exception:
         return jsonify({"error": "Error testing endpoint"}), 400
 
 @app.route('/api/health', methods=['GET'])
