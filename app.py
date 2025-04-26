@@ -524,47 +524,43 @@ def test_endpoint():
     if not url:
         return jsonify({"error": "URL is required"}), 400
     
-    # Validate the URL
-    from urllib.parse import urlparse
+    # Define allowed domains in one place
+    allowed_domains = {"example.com", "api.example.com"}
     
-    def is_valid_url(url):
-        """Validate the URL to prevent SSRF attacks."""
-        allowed_domains = {"example.com", "api.example.com"}
-        parsed_url = urlparse(url)
-        
-        # Ensure the scheme is http or https
-        if parsed_url.scheme not in {"http", "https"}:
-            return False
-        
-        # Ensure the hostname is in the allowed domains
-        if parsed_url.hostname not in allowed_domains:
-            return False
-        
-        return True
-    
-    if not is_valid_url(url):
-        return jsonify({"error": "Invalid URL"}), 400
-    allowed_domains = ["example.com", "api.example.com"]
-    
+    # Validate the URL to prevent SSRF
     try:
-        parsed_url = urlparse(url)
-        if parsed_url.scheme not in ["http", "https"]:
-            return jsonify({"error": "Invalid URL scheme"}), 400
+        from urllib.parse import urlparse
+        import ipaddress
+        import socket
         
-        # Check hostname directly against allowed domains without DNS resolution
+        parsed_url = urlparse(url)
+        
+        # 1. Ensure the scheme is http or https
+        if parsed_url.scheme not in {"http", "https"}:
+            return jsonify({"error": "Invalid URL scheme. Only HTTP and HTTPS are allowed"}), 400
+        
+        # 2. Extract the hostname for validation
         hostname = parsed_url.hostname
         if not hostname:
             return jsonify({"error": "Invalid URL: missing hostname"}), 400
-            
-        # Strict domain validation with exact matching
-        if hostname not in allowed_domains and not any(hostname.endswith('.' + domain) for domain in allowed_domains):
-            return jsonify({"error": "URL domain is not allowed"}), 400
         
-        # Reject IP addresses in URL
-        import re
-        ip_pattern = re.compile(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$')
-        if ip_pattern.match(hostname):
-            return jsonify({"error": "IP addresses not allowed in URL"}), 400
+        # 3. Block direct IP addresses (both IPv4 and IPv6)
+        try:
+            ipaddress.ip_address(hostname)
+            return jsonify({"error": "IP addresses are not allowed in URLs"}), 400
+        except ValueError:
+            # Not an IP address, continue with validation
+            pass
+            
+        # 4. Strict domain validation with exact matching
+        domain_allowed = False
+        for domain in allowed_domains:
+            if hostname == domain or hostname.endswith(f".{domain}"):
+                domain_allowed = True
+                break
+                
+        if not domain_allowed:
+            return jsonify({"error": "URL domain is not allowed"}), 400
             
     except Exception as e:
         return jsonify({"error": f"Invalid URL: {str(e)}"}), 400
@@ -580,11 +576,29 @@ def test_endpoint():
         # Store original socket.create_connection function
         original_create_connection = socket.create_connection
         
-        # Override socket connection creation to prevent SSRF
+        # Override socket connection creation for defense-in-depth
         def patched_create_connection(address, *args, **kwargs):
             host, port = address
-            if host not in allowed_domains and not any(host.endswith('.' + domain) for domain in allowed_domains):
+            
+            # Verify IP address isn't a loopback, private or reserved address
+            try:
+                ip = ipaddress.ip_address(socket.gethostbyname(host))
+                if ip.is_loopback or ip.is_private or ip.is_reserved:
+                    raise ValueError(f"Connection to internal/reserved IP address {ip} is not allowed")
+            except socket.gaierror:
+                # DNS resolution failed
+                raise ValueError(f"Unable to resolve hostname: {host}")
+                
+            # Double-check domain is allowed
+            domain_allowed = False
+            for domain in allowed_domains:
+                if host == domain or host.endswith(f".{domain}"):
+                    domain_allowed = True
+                    break
+                    
+            if not domain_allowed:
                 raise ValueError(f"Connection to {host} is not allowed")
+                
             return original_create_connection(address, *args, **kwargs)
         
         # Apply patch
