@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import './AppLayout.css';
@@ -33,22 +33,16 @@ import KeyManager from './components/KeyManager';
 import Settings from './components/Settings';
 import ReportGenerator from './components/ReportGenerator';
 import NotFound from './components/layout/NotFound';
-import Toast from './components/Toast';
+// import Toast from './components/Toast';
 import ToastContainer from './components/ToastContainer';
 
 // Context
-import { AuthProvider, AuthContext } from './context/AuthContext';
+import AuthContext, { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 // Services
 import { setAuthToken } from './services/api';
-
-// Protected Route Component - Modified to always allow access
-const ProtectedRoute = ({ children }) => {
-  // Always return children without checking for auth
-  return children;
-};
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +50,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
-  const [dark, setDark] = useState(localStorage.getItem('darkMode') === 'true');
+  const [dark] = useState(localStorage.getItem('darkMode') === 'true');
   const [loggedIn, setLoggedIn] = useContext(AuthContext);
   const [auditLogs, setAuditLogs] = useState([]);
   
