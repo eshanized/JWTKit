@@ -4,6 +4,7 @@ import jwt
 import json
 import base64
 from datetime import datetime, timedelta
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -659,4 +660,5 @@ def api_health_check():
     })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG'])
