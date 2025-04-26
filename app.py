@@ -593,9 +593,13 @@ def test_endpoint():
 
             # Verify IP address isn't a loopback, private or reserved address
             try:
-                ip = ipaddress.ip_address(socket.gethostbyname(host))
-                if ip.is_loopback or ip.is_private or ip.is_reserved:
-                    raise ValueError(f"Connection to internal/reserved IP address {ip} is not allowed")
+                # Resolve all IP addresses for the host (IPv4 and IPv6)
+                addr_info = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+                for family, _, _, _, sockaddr in addr_info:
+                    ip_str = sockaddr[0]
+                    ip = ipaddress.ip_address(ip_str)
+                    if ip.is_loopback or ip.is_private or ip.is_reserved or ip.is_link_local or ip.is_multicast:
+                        raise ValueError(f"Connection to internal/reserved IP address {ip} is not allowed")
             except socket.gaierror:
                 # DNS resolution failed
                 raise ValueError(f"Unable to resolve hostname: {host}")
@@ -622,18 +626,18 @@ def test_endpoint():
                 "Authorization": f"Bearer {token}"
             }
 
-            # Make the request with a reduced timeout and limit redirects
+            # Make the request with a reduced timeout and disable redirects to prevent SSRF via redirect chains
             session = requests.Session()
-            session.max_redirects = 3
+            session.max_redirects = 0
 
             if method == 'GET':
-                response = session.get(url, headers=headers, timeout=5, allow_redirects=True)
+                response = session.get(url, headers=headers, timeout=5, allow_redirects=False)
             elif method == 'POST':
-                response = session.post(url, headers=headers, json={}, timeout=5, allow_redirects=True)
+                response = session.post(url, headers=headers, json={}, timeout=5, allow_redirects=False)
             elif method == 'PUT':
-                response = session.put(url, headers=headers, json={}, timeout=5, allow_redirects=True)
+                response = session.put(url, headers=headers, json={}, timeout=5, allow_redirects=False)
             elif method == 'DELETE':
-                response = session.delete(url, headers=headers, timeout=5, allow_redirects=True)
+                response = session.delete(url, headers=headers, timeout=5, allow_redirects=False)
 
             # Limit response size to prevent resource exhaustion
             max_response_size = 1024 * 1024  # 1 MB
