@@ -44,7 +44,7 @@ def decode_token():
             "is_valid": None  # Validity is unknown without a secret
         })
     except Exception as e:
-        return jsonify({"error": f"Error decoding token: {str(e)}"}), 400
+        return jsonify({"error": "Error decoding token"}), 400
 
 @app.route('/verify', methods=['POST'])
 def verify_token():
@@ -174,7 +174,7 @@ def scan_vulnerabilities():
             ]
         })
     except Exception as e:
-        return jsonify({"error": f"Error analyzing token: {str(e)}"}), 400
+        return jsonify({"error": "Error analyzing token"}), 400
 
 @app.route('/modify', methods=['POST'])
 def modify_token():
@@ -233,7 +233,7 @@ def modify_token():
             "algorithm": algorithm
         })
     except Exception as e:
-        return jsonify({"error": f"Error modifying token: {str(e)}"}), 400
+        return jsonify({"error": "Error modifying token"}), 400
 
 @app.route('/algorithm-confusion', methods=['POST'])
 def algorithm_confusion():
@@ -285,7 +285,7 @@ def algorithm_confusion():
             "description": "This attack exploits implementations that don't validate the algorithm type correctly."
         })
     except Exception as e:
-        return jsonify({"error": f"Error in algorithm confusion attack: {str(e)}"}), 400
+        return jsonify({"error": "Error in algorithm confusion attack"}), 400
 
 @app.route('/brute-force', methods=['POST'])
 def brute_force():
@@ -355,7 +355,7 @@ def brute_force():
             "words_checked": len(wordlist)
         })
     except Exception as e:
-        return jsonify({"error": f"Error in brute force attempt: {str(e)}"}), 400
+        return jsonify({"error": "Error in brute force attempt"}), 400
 
 @app.route('/key-injection', methods=['POST'])
 def key_injection():
@@ -394,7 +394,7 @@ def key_injection():
             "message": f"Key injection attack successful with kid value: {kid_value}"
         })
     except Exception as e:
-        return jsonify({"error": f"Error in key injection attack: {str(e)}"}), 400
+        return jsonify({"error": "Error in key injection attack"}), 400
 
 @app.route('/jwks-spoofing', methods=['POST'])
 def jwks_spoofing():
@@ -460,7 +460,7 @@ def jwks_spoofing():
             "message": "JWKS spoofing example created"
         })
     except Exception as e:
-        return jsonify({"error": f"Error in JWKS spoofing: {str(e)}"}), 400
+        return jsonify({"error": "Error in JWKS spoofing"}), 400
 
 @app.route('/token-expiration-bypass', methods=['POST'])
 def token_expiration_bypass():
@@ -509,7 +509,7 @@ def token_expiration_bypass():
             "message": "Token expiration bypass techniques applied"
         })
     except Exception as e:
-        return jsonify({"error": f"Error in expiration bypass: {str(e)}"}), 400
+        return jsonify({"error": "Error in expiration bypass"}), 400
 
 @app.route('/test-endpoint', methods=['POST'])
 def test_endpoint():
@@ -573,7 +573,7 @@ def test_endpoint():
             return jsonify({"error": "URL domain is not allowed"}), 400
 
     except Exception as e:
-        return jsonify({"error": f"Invalid URL: {str(e)}"}), 400
+        return jsonify({"error": "Invalid URL"}), 400
 
     method = data.get('method', 'GET').upper()
     if method not in ['GET', 'POST', 'PUT', 'DELETE']:
@@ -673,7 +673,7 @@ def test_endpoint():
             "error": str(ve)
         }), 400
     except Exception as e:
-        return jsonify({"error": f"Error testing endpoint: {str(e)}"}), 400
+        return jsonify({"error": "Error testing endpoint"}), 400
 
 @app.route('/api/health', methods=['GET'])
 def api_health_check():
