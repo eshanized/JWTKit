@@ -89,7 +89,7 @@ class JWTSecurityTester:
             # Convert the public key to the format needed
             try:
                 # Try to parse the key (assuming PEM format)
-                public_key_obj = serialization.load_pem_public_key(
+                serialization.load_pem_public_key(
                     public_key.encode(),
                     backend=default_backend()
                 )
