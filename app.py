@@ -343,7 +343,7 @@ def brute_force():
                 continue
             except Exception as e:
                 # Log other exceptions but continue trying
-                print(f"Exception with word '{word}': {str(e)}")
+                # Removed clear-text logging of sensitive word to avoid leaking secrets
                 continue
         
         # If we've tried all words and none worked
