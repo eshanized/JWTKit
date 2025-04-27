@@ -220,7 +220,7 @@ class JWTSecurityTester:
             public_key = private_key.public_key()
             
             # Get key components for the JWK
-            private_numbers = private_key.private_numbers()
+# Removed unused variable assignment
             public_numbers = public_key.public_numbers()
             
             # Create a unique key ID
