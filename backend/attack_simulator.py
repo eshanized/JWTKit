@@ -787,7 +787,6 @@ class JWTTester:
         try:
             # Extract the header and payload
             header_b64, payload_b64, signature_b64 = token.split('.')
-            message = f"{header_b64}.{payload_b64}"
             
             # Try each word in the wordlist
             for secret in wordlist:
