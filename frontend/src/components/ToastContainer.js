@@ -1,20 +1,18 @@
-import React from 'react';
-import Toast from './Toast';
-import { useToast } from '../context/ToastContext';
+import React, { useContext } from 'react';
+import ToastContext from '../context/ToastContext';
 
 const ToastContainer = () => {
-  const { toasts, removeToast } = useToast();
+  const { toasts, removeToast } = useContext(ToastContext);
   
   return (
     <div className="toast-container">
-      {toasts && toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          id={toast.id}
-          type={toast.type}
-          message={toast.message}
-          onClose={() => removeToast(toast.id)}
-        />
+      {toasts.map(toast => (
+        <div key={toast.id} className={`toast toast-${toast.type}`}>
+          <div className="toast-content">{toast.message}</div>
+          <button className="toast-close" onClick={() => removeToast(toast.id)}>
+            &times;
+          </button>
+        </div>
       ))}
     </div>
   );
