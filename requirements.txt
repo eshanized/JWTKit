@@ -18,7 +18,7 @@ marshmallow==3.21.2
 pyjwt[crypto]==2.8.0
 bcrypt==4.1.1
 itsdangerous==2.2.0
-pytz==2024.1
+pytz==2025.2
 validators==0.22.0
 pyyaml==6.0.1
 pytest==7.4.3
