@@ -69,18 +69,36 @@ class JWTUtils:
             algorithms: List of allowed algorithms
             
         Returns:
-            Dictionary with verification result and payload if successful
+            Dict with verification result
         """
-        if not algorithms:
-            # Try to determine algorithm from token header
-            try:
-                header = self.decode_token_parts(token)["header"]
-                algorithms = [header.get("alg")]
-            except:
-                algorithms = ["HS256"]  # Default
-        
         try:
+            # Make sure algorithms is a list to prevent algorithm confusion
+            if algorithms is None:
+                # Try to determine algorithm from token header
+                try:
+                    header = self.decode_token_parts(token)["header"]
+                    alg = header.get("alg")
+                    # Ensure 'none' algorithm is not allowed unless explicitly requested
+                    if alg == 'none':
+                        return {
+                            "valid": False,
+                            "error": "Algorithm 'none' is not allowed"
+                        }
+                    algorithms = [alg] if alg else ["HS256"]
+                except Exception:
+                    # Default to HS256 if we can't determine the algorithm
+                    algorithms = ["HS256"]
+            
+            # Reject if 'none' is in the algorithms list unless it's the only algorithm
+            if 'none' in algorithms and len(algorithms) > 1:
+                return {
+                    "valid": False,
+                    "error": "Algorithm 'none' cannot be included with other algorithms"
+                }
+            
+            # Validate and decode token
             payload = jwt.decode(token, key, algorithms=algorithms)
+            
             return {
                 "valid": True,
                 "payload": payload

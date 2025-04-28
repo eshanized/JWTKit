@@ -42,8 +42,18 @@ class KeyManager:
     def _load_keys(self) -> Dict[str, Any]:
         """Load keys from storage"""
         try:
-            if os.path.exists(self.key_store_path):
-                with open(self.key_store_path, 'r') as f:
+            # Normalize and validate path to prevent path traversal
+            normalized_path = os.path.normpath(self.key_store_path)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.abspath(os.path.join(base_dir, '..'))
+            
+            # Ensure the key store path is within the project directory
+            if not normalized_path.startswith(parent_dir):
+                logger.error(f"Invalid key store path: {self.key_store_path}")
+                raise ValueError("Invalid key store path")
+            
+            if os.path.exists(normalized_path):
+                with open(normalized_path, 'r') as f:
                     return json.load(f)
             else:
                 # Initialize with empty key store
@@ -76,10 +86,21 @@ class KeyManager:
             # Update metadata
             keys["meta"]["updated_at"] = datetime.utcnow().isoformat()
             
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(self.key_store_path), exist_ok=True)
+            # Normalize and validate path to prevent path traversal
+            normalized_path = os.path.normpath(self.key_store_path)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.abspath(os.path.join(base_dir, '..'))
             
-            with open(self.key_store_path, 'w') as f:
+            # Ensure the key store path is within the project directory
+            if not normalized_path.startswith(parent_dir):
+                logger.error(f"Invalid key store path: {self.key_store_path}")
+                raise ValueError("Invalid key store path")
+            
+            # Create directory if it doesn't exist
+            directory = os.path.dirname(normalized_path)
+            os.makedirs(directory, exist_ok=True)
+            
+            with open(normalized_path, 'w') as f:
                 json.dump(keys, f, indent=2)
             return True
         except Exception as e:

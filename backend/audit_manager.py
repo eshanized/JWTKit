@@ -256,3 +256,52 @@ class AuditLogManager:
                     print(f"Error loading logs from {filename}: {str(e)}")
         
         return historical_logs
+
+    def _load_audit_log(self, filename):
+        """Load audit log from file"""
+        try:
+            # Normalize and validate path to prevent path traversal
+            normalized_path = os.path.normpath(filename)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.abspath(os.path.join(base_dir, '..'))
+            logs_dir = os.path.join(parent_dir, 'logs')
+            
+            # Ensure the file path is within the logs directory
+            if not normalized_path.startswith(logs_dir):
+                self.logger.error(f"Invalid audit log file path: {filename}")
+                raise ValueError("Invalid audit log file path")
+            
+            if os.path.exists(normalized_path):
+                with open(normalized_path, 'r') as f:
+                    return json.load(f)
+            else:
+                return {"events": [], "meta": {"created_at": datetime.utcnow().isoformat()}}
+        except FileNotFoundError:
+            return {"events": [], "meta": {"created_at": datetime.utcnow().isoformat()}}
+        except json.JSONDecodeError:
+            self.logger.error(f"Error parsing audit log: {filename}")
+            return {"events": [], "meta": {"created_at": datetime.utcnow().isoformat()}}
+
+    def _save_audit_log(self, data, filename):
+        """Save audit log to file"""
+        try:
+            # Normalize and validate path to prevent path traversal
+            normalized_path = os.path.normpath(filename)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.abspath(os.path.join(base_dir, '..'))
+            logs_dir = os.path.join(parent_dir, 'logs')
+            
+            # Ensure the file path is within the logs directory
+            if not normalized_path.startswith(logs_dir):
+                self.logger.error(f"Invalid audit log file path: {filename}")
+                raise ValueError("Invalid audit log file path")
+            
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(normalized_path), exist_ok=True)
+            
+            with open(normalized_path, 'w') as f:
+                json.dump(data, f, indent=2)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving audit log: {str(e)}")
+            return False

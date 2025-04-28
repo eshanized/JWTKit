@@ -143,7 +143,12 @@ def list_keys():
         return jsonify({"error": "Key management module not available"}), 501
     
     try:
-        include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+        # Sanitize and validate the include_inactive parameter
+        include_inactive_param = request.args.get('include_inactive', 'false')
+        if include_inactive_param not in ['true', 'false']:
+            return jsonify({"error": "include_inactive parameter must be 'true' or 'false'"}), 400
+            
+        include_inactive = include_inactive_param.lower() == 'true'
         key_manager = get_key_manager()
         keys = key_manager.list_keys(include_inactive=include_inactive)
         
@@ -424,36 +429,32 @@ def verify_managed_token():
 
 @advanced_api.route('/attack-simulation', methods=['POST'])
 def simulate_attacks():
-    """
-    Simulate various JWT attacks on a token.
-    """
+    """Simulate attacks against JWT tokens"""
     if not has_advanced_modules:
         return jsonify({"error": "Attack simulation module not available"}), 501
-    
+
     data = request.json or {}
     token = data.get('token')
-    public_key = data.get('public_key')
     attack_type = data.get('attack_type')
-    wordlist = data.get('wordlist')
-    
+    public_key = data.get('public_key')
+    wordlist = data.get('wordlist', [])
+
     if not token:
         return jsonify({"error": "Token is required"}), 400
-    
+
     try:
-        # If a specific attack is requested
         if attack_type:
-            result = None
-            
+            # If a specific attack is requested
             if attack_type == 'none_algorithm':
                 result = ExternalJWTSecurityTester.none_algorithm_attack(token)
             elif attack_type == 'algorithm_confusion':
                 if not public_key:
                     return jsonify({"error": "Public key is required for algorithm confusion attack"}), 400
                 result = ExternalJWTSecurityTester.algorithm_confusion_attack(token, public_key)
-            elif attack_type == 'key_injection':
-                result = ExternalJWTSecurityTester.key_injection_attack(token)
             elif attack_type == 'signature_removal':
                 result = ExternalJWTSecurityTester.signature_removal_attack(token)
+            elif attack_type == 'key_injection':
+                result = ExternalJWTSecurityTester.key_injection_attack(token)
             elif attack_type == 'kid_sql_injection':
                 result = ExternalJWTSecurityTester.kid_sql_injection_attack(token)
             elif attack_type == 'kid_directory_traversal':
@@ -462,7 +463,12 @@ def simulate_attacks():
                 if not wordlist:
                     # Load default wordlist if none provided
                     try:
-                        with open('wordlists/common_jwt_secrets.txt', 'r') as f:
+                        wordlist_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'wordlists', 'common_jwt_secrets.txt')
+                        # Validate the path doesn't contain suspicious patterns
+                        if not os.path.normpath(wordlist_path).startswith(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))):
+                            return jsonify({"error": "Invalid wordlist path"}), 400
+                            
+                        with open(wordlist_path, 'r') as f:
                             wordlist = [line.strip() for line in f]
                     except FileNotFoundError:
                         return jsonify({"error": "Wordlist is required for brute force attack"}), 400
@@ -476,8 +482,13 @@ def simulate_attacks():
             # Load default wordlist for brute force
             if not wordlist:
                 try:
-                    with open('wordlists/common_jwt_secrets.txt', 'r') as f:
-                        wordlist = [line.strip() for line in f]
+                    wordlist_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'wordlists', 'common_jwt_secrets.txt')
+                    # Validate the path doesn't contain suspicious patterns
+                    if not os.path.normpath(wordlist_path).startswith(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))):
+                        wordlist = None
+                    else:
+                        with open(wordlist_path, 'r') as f:
+                            wordlist = [line.strip() for line in f]
                 except FileNotFoundError:
                     wordlist = None
                     
@@ -687,12 +698,4 @@ def audit_token():
 def register_advanced_api(app):
     """Register the advanced API Blueprint with a Flask app"""
     app.register_blueprint(advanced_api, url_prefix='/api/v1')
-    logger.info("Advanced API endpoints registered"   
-                
-                
-                
-                
-                
-                
-                
-                )
+    logger.info("Advanced API endpoints registered")
