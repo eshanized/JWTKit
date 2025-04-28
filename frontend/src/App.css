@@ -11,23 +11,191 @@
 
 .main-content {
   flex: 1;
-  padding: 20px;
+  padding: 1.5rem;
   transition: margin-left 0.3s ease;
 }
 
 .main-content.sidebar-open {
-  margin-left: 250px;
+  margin-left: 280px;
 }
 
 .main-content.sidebar-closed {
   margin-left: 0;
 }
 
-/* Responsive adjustments */
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* JWT Token Display */
+.jwt-token-display {
+  font-family: 'Fira Code', monospace;
+  margin: 1.5rem 0;
+  overflow-wrap: break-word;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.jwt-token-header {
+  color: #ff6b6b;
+}
+
+.jwt-token-payload {
+  color: #4ecdc4;
+}
+
+.jwt-token-signature {
+  color: #ffd166;
+}
+
+.jwt-token-dot {
+  color: #4A90E2;
+  font-weight: bold;
+  margin: 0 4px;
+}
+
+/* Card Layouts */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.tool-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tool-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* Code Display */
+.code-block {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: 'Fira Code', monospace;
+  position: relative;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.code-block:hover .copy-button {
+  opacity: 1;
+}
+
+/* Form Styles */
+.form-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.section-divider {
+  margin: 2rem 0;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Vulnerability Score Display */
+.vulnerability-score {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 auto;
+}
+
+.score-low {
+  background-color: #4ecdc4;
+  color: white;
+}
+
+.score-medium {
+  background-color: #ffd166;
+  color: #333;
+}
+
+.score-high {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+/* Responsive Adjustments */
 @media (max-width: 768px) {
   .main-content.sidebar-open {
     margin-left: 0;
   }
+  
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode Text */
+.dark-mode-text {
+  color: rgba(255, 255, 255, 0.87);
+}
+
+/* Light Mode Text */
+.light-mode-text {
+  color: rgba(0, 0, 0, 0.87);
 }
 
 /* Tool page styling */
