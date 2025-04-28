@@ -8,7 +8,7 @@ This module extends the basic API with more sophisticated endpoints:
 - JWKS endpoint
 """
 
-from flask import Flask, request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint
 import json
 import base64
 import os
