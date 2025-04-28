@@ -1,285 +1,505 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
-import '../Tools.css';
+import { toast } from 'react-toastify';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
+import { 
+  Container, Typography, TextField, Button, 
+  Box, Paper, Grid, CircularProgress,
+  Alert, Divider, Chip, FormControl,
+  InputLabel, Select, MenuItem, Tabs, Tab
+} from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import PublishIcon from '@mui/icons-material/Publish';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import ReactJson from 'react-json-view';
 
 const PayloadEditor = () => {
   const [token, setToken] = useState('');
-  const [header, setHeader] = useState('');
-  const [payload, setPayload] = useState('');
   const [secret, setSecret] = useState('');
   const [algorithm, setAlgorithm] = useState('HS256');
-  const [newToken, setNewToken] = useState('');
+  const [decodedHeader, setDecodedHeader] = useState(null);
+  const [decodedPayload, setDecodedPayload] = useState(null);
+  const [editedHeader, setEditedHeader] = useState(null);
+  const [editedPayload, setEditedPayload] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const algorithms = [
-    { id: 'HS256', name: 'HS256', family: 'HMAC' },
-    { id: 'HS384', name: 'HS384', family: 'HMAC' },
-    { id: 'HS512', name: 'HS512', family: 'HMAC' },
-    { id: 'RS256', name: 'RS256', family: 'RSA' },
-    { id: 'RS384', name: 'RS384', family: 'RSA' },
-    { id: 'RS512', name: 'RS512', family: 'RSA' },
-    { id: 'none', name: 'None', family: 'None' }
-  ];
-
+  const [modifiedToken, setModifiedToken] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [currentTab, setCurrentTab] = useState(0);
+  
+  // Reset copy state after 2 seconds
+  useEffect(() => {
+    if (copied) {
+      const timeout = setTimeout(() => setCopied(false), 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [copied]);
+  
   const handleTokenChange = (e) => {
     setToken(e.target.value);
-    setError(null);
-    setNewToken('');
+    
+    // Auto-decode if the token looks valid
+    if (e.target.value.split('.').length === 3) {
+      decodeToken(e.target.value);
+    } else {
+      setDecodedHeader(null);
+      setDecodedPayload(null);
+      setEditedHeader(null);
+      setEditedPayload(null);
+    }
   };
-
-  const handleHeaderChange = (e) => {
-    setHeader(e.target.value);
-    setError(null);
-    setNewToken('');
-  };
-
-  const handlePayloadChange = (e) => {
-    setPayload(e.target.value);
-    setError(null);
-    setNewToken('');
-  };
-
+  
   const handleSecretChange = (e) => {
     setSecret(e.target.value);
-    setError(null);
-    setNewToken('');
   };
-
-  const selectAlgorithm = (alg) => {
-    setAlgorithm(alg);
-    setError(null);
-    setNewToken('');
+  
+  const handleAlgorithmChange = (e) => {
+    setAlgorithm(e.target.value);
   };
-
-  const decodeToken = () => {
-    if (!token.trim()) {
-      setError('Please enter a JWT token');
-      return;
-    }
-
+  
+  const handleTabChange = (event, newValue) => {
+    setCurrentTab(newValue);
+  };
+  
+  const decodeToken = (tokenToDecode = token) => {
     try {
-      // Split the token into parts
-      const parts = token.split('.');
-      
+      // Split the token
+      const parts = tokenToDecode.split('.');
       if (parts.length !== 3) {
-        setError('Invalid JWT format. A JWT should have 3 parts separated by dots.');
+        toast.error('Invalid JWT format');
         return;
       }
-
-      // Base64 URL decode the header and payload
+      
+      // Decode header and payload
       const decodeBase64 = (str) => {
-        // Replace URL-safe characters and add padding if needed
-        const input = str
-          .replace(/-/g, '+')
-          .replace(/_/g, '/');
-        
-        const pad = input.length % 4;
-        if (pad) {
-          if (pad === 1) {
-            throw new Error('Invalid base64 string');
-          }
-          const padding = '=='.substring(0, 4 - pad);
-          return atob(input + padding);
-        }
-        
-        return atob(input);
+        const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+        return JSON.parse(atob(base64 + padding));
       };
-
-      try {
-        const decodedHeader = JSON.parse(decodeBase64(parts[0]));
-        const decodedPayload = JSON.parse(decodeBase64(parts[1]));
-        
-        setHeader(JSON.stringify(decodedHeader, null, 2));
-        setPayload(JSON.stringify(decodedPayload, null, 2));
-        
-        // Set the algorithm from the header if it exists
-        if (decodedHeader.alg) {
-          setAlgorithm(decodedHeader.alg);
-        }
-        
-        setError(null);
-      } catch (e) {
-        setError('Error parsing JWT: ' + e.message);
-      }
-    } catch (e) {
-      setError('Error decoding JWT: ' + e.message);
+      
+      const header = decodeBase64(parts[0]);
+      const payload = decodeBase64(parts[1]);
+      
+      setDecodedHeader(header);
+      setDecodedPayload(payload);
+      setEditedHeader(header);
+      setEditedPayload(payload);
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      toast.error('Error decoding JWT: ' + error.message);
     }
   };
-
+  
+  const handleHeaderUpdate = (data) => {
+    setEditedHeader(data.updated_src);
+  };
+  
+  const handlePayloadUpdate = (data) => {
+    setEditedPayload(data.updated_src);
+  };
+  
   const generateToken = async () => {
-    if (!header.trim() || !payload.trim()) {
-      setError('Header and payload are required');
+    if (!editedPayload) {
+      toast.error('Payload is required');
       return;
     }
-
-    if (algorithm !== 'none' && !secret.trim()) {
-      setError('Secret key is required for this algorithm');
+    
+    // For none algorithm, secret is optional
+    if (algorithm !== 'none' && !secret) {
+      toast.error('Secret is required for signing');
       return;
     }
-
-    let headerObj, payloadObj;
-
+    
     try {
-      headerObj = JSON.parse(header);
-      payloadObj = JSON.parse(payload);
-    } catch (e) {
-      setError('Invalid JSON in header or payload: ' + e.message);
-      return;
-    }
-
-    // Ensure the alg in the header matches the selected algorithm
-    headerObj.alg = algorithm;
-    // Update the header with the correct alg
-    setHeader(JSON.stringify(headerObj, null, 2));
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await axios.post('http://localhost:8000/generate', {
-        header: headerObj,
-        payload: payloadObj,
+      setLoading(true);
+      
+      const response = await axios.post('/modify', {
+        token: token || undefined, // Send original token for reference if available
+        new_payload: editedPayload,
         secret,
         algorithm
       });
-
-      setNewToken(response.data.token);
-    } catch (err) {
-      console.error('Error generating token:', err);
       
-      if (err.response && err.response.data) {
-        setError(err.response.data.error || 'Failed to generate token');
+      setModifiedToken(response.data.modified_token);
+      toast.success('Token generated successfully!');
+      setCurrentTab(2); // Switch to result tab
+    } catch (error) {
+      console.error('Error generating token:', error);
+      
+      if (error.response) {
+        toast.error(error.response.data.error || 'Server error');
       } else {
-        setError('Failed to connect to server. Please check if the backend is running.');
+        toast.error('Network error');
       }
     } finally {
       setLoading(false);
     }
   };
-
+  
+  const handleCopy = () => {
+    setCopied(true);
+    toast.success('Token copied to clipboard!');
+  };
+  
+  const getAlgorithmHelp = (alg) => {
+    const algInfo = {
+      'HS256': 'HMAC with SHA-256 (symmetric)',
+      'HS384': 'HMAC with SHA-384 (symmetric)',
+      'HS512': 'HMAC with SHA-512 (symmetric)',
+      'RS256': 'RSA with SHA-256 (asymmetric)',
+      'RS384': 'RSA with SHA-384 (asymmetric)',
+      'RS512': 'RSA with SHA-512 (asymmetric)',
+      'ES256': 'ECDSA with SHA-256 (asymmetric)',
+      'ES384': 'ECDSA with SHA-384 (asymmetric)',
+      'ES512': 'ECDSA with SHA-512 (asymmetric)',
+      'none': 'No signature verification (insecure)'
+    }[alg];
+    
+    return algInfo || 'Unknown algorithm';
+  };
+  
+  const secretHelp = () => {
+    if (algorithm === 'none') {
+      return 'No secret needed for "none" algorithm';
+    }
+    
+    if (algorithm.startsWith('HS')) {
+      return 'Provide the shared secret key for HMAC algorithms';
+    }
+    
+    if (algorithm.startsWith('RS') || algorithm.startsWith('ES')) {
+      return 'Provide the private key in PEM format for asymmetric algorithms';
+    }
+    
+    return 'Provide a secret for signing';
+  };
+  
+  // Available signing algorithms
+  const algorithms = [
+    'HS256', 'HS384', 'HS512',
+    'RS256', 'RS384', 'RS512',
+    'ES256', 'ES384', 'ES512',
+    'none'
+  ];
+  
   return (
-    <div className="tool-container">
-      <div className="tool-header">
-        <h1>JWT Payload Editor</h1>
-        <p>Edit JWT payload and generate new tokens.</p>
-      </div>
-      
-      <div className="tool-content">
-        <div className="form-group">
-          <label htmlFor="token">
-            Enter JWT Token (Optional):
-          </label>
-          <textarea
-            id="token"
-            className="form-control token-input"
-            value={token}
-            onChange={handleTokenChange}
-            placeholder="Paste your JWT token here to decode and edit it"
-            rows={3}
-          />
-          <div className="form-actions" style={{ marginTop: '10px' }}>
-            <button 
-              className="btn btn-outline-primary" 
-              onClick={decodeToken}
-            >
-              Decode Token
-            </button>
-          </div>
-        </div>
+    <Container maxWidth="lg">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mt: 2 }}>
+            JWT Payload Editor
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+            Decode, modify, and resign JWT tokens with custom claims and algorithms
+          </Typography>
+        </Box>
         
-        <div className="form-group">
-          <label htmlFor="header">Header:</label>
-          <textarea
-            id="header"
-            className="form-control"
-            value={header}
-            onChange={handleHeaderChange}
-            placeholder="Enter JWT header as JSON"
-            rows={5}
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="payload">Payload:</label>
-          <textarea
-            id="payload"
-            className="form-control"
-            value={payload}
-            onChange={handlePayloadChange}
-            placeholder="Enter JWT payload as JSON"
-            rows={8}
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="algorithm">Signature Algorithm:</label>
-          <div className="algorithm-selector">
-            {algorithms.map(alg => (
-              <button
-                key={alg.id}
-                className={`algorithm-option ${algorithm === alg.id ? 'selected' : ''}`}
-                onClick={() => selectAlgorithm(alg.id)}
-              >
-                {alg.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {algorithm !== 'none' && (
-          <div className="form-group">
-            <label htmlFor="secret">
-              {algorithm.startsWith('HS') ? 'Secret Key:' : 'Private Key:'}
-            </label>
-            <textarea
-              id="secret"
-              className="form-control"
-              value={secret}
-              onChange={handleSecretChange}
-              placeholder={algorithm.startsWith('HS') 
-                ? "Enter your secret key" 
-                : "Enter your private key (PEM format)"}
-              rows={3}
-            />
-          </div>
-        )}
-        
-        <div className="form-actions">
-          <button 
-            className="btn btn-primary" 
-            onClick={generateToken}
-            disabled={loading}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs 
+            value={currentTab} 
+            onChange={handleTabChange} 
+            aria-label="jwt editor tabs"
+            variant="fullWidth"
           >
-            {loading ? 'Generating...' : 'Generate Token'}
-          </button>
-        </div>
+            <Tab label="Decode & Edit" />
+            <Tab label="Sign Token" />
+            <Tab label="Result" disabled={!modifiedToken} />
+          </Tabs>
+        </Box>
         
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
+        {/* Tab 1: Decode & Edit */}
+        {currentTab === 0 && (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Input Token
+                </Typography>
+                <TextField
+                  label="JWT Token (optional)"
+                  variant="outlined"
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={token}
+                  onChange={handleTokenChange}
+                  placeholder="Paste an existing JWT token or create a new one"
+                  sx={{ mb: 2 }}
+                />
+                
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button 
+                    variant="contained" 
+                    onClick={() => decodeToken()}
+                    disabled={!token || token.split('.').length !== 3}
+                  >
+                    Decode Token
+                  </Button>
+                  <Button 
+                    variant="outlined"
+                    onClick={() => {
+                      setDecodedPayload({
+                        sub: '123456789',
+                        name: 'John Doe',
+                        iat: Math.floor(Date.now() / 1000),
+                        exp: Math.floor(Date.now() / 1000) + 3600
+                      });
+                      setDecodedHeader({ alg: 'HS256', typ: 'JWT' });
+                      setEditedPayload({
+                        sub: '123456789',
+                        name: 'John Doe',
+                        iat: Math.floor(Date.now() / 1000),
+                        exp: Math.floor(Date.now() / 1000) + 3600
+                      });
+                      setEditedHeader({ alg: 'HS256', typ: 'JWT' });
+                    }}
+                  >
+                    Create New
+                  </Button>
+                </Box>
+              </Paper>
+            </Grid>
+            
+            {(decodedHeader || decodedPayload) && (
+              <>
+                <Grid item xs={12} md={6}>
+                  <Paper elevation={0} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Header
+                    </Typography>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        The header specifies the algorithm used for signing the token.
+                      </Typography>
+                    </Alert>
+                    {editedHeader && (
+                      <Box sx={{ bgcolor: 'background.default', p: 2, borderRadius: 2 }}>
+                        <ReactJson 
+                          src={editedHeader} 
+                          onEdit={handleHeaderUpdate}
+                          onAdd={handleHeaderUpdate}
+                          onDelete={handleHeaderUpdate}
+                          displayDataTypes={false}
+                          name={false}
+                          style={{ backgroundColor: 'transparent' }}
+                        />
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12} md={6}>
+                  <Paper elevation={0} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+                    <Typography variant="h6" gutterBottom>
+                      Payload
+                    </Typography>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        The payload contains the claims and data stored in the token.
+                      </Typography>
+                    </Alert>
+                    {editedPayload && (
+                      <Box sx={{ bgcolor: 'background.default', p: 2, borderRadius: 2 }}>
+                        <ReactJson 
+                          src={editedPayload} 
+                          onEdit={handlePayloadUpdate}
+                          onAdd={handlePayloadUpdate}
+                          onDelete={handlePayloadUpdate}
+                          displayDataTypes={false}
+                          name={false}
+                          style={{ backgroundColor: 'transparent' }}
+                        />
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button 
+                      variant="contained" 
+                      color="primary"
+                      onClick={() => setCurrentTab(1)}
+                      endIcon={<EditIcon />}
+                    >
+                      Proceed to Signing
+                    </Button>
+                  </Box>
+                </Grid>
+              </>
+            )}
+          </Grid>
         )}
         
-        {newToken && (
-          <div className="result-container">
-            <div className="result-item">
-              <h3>Generated Token</h3>
-              <pre className="generated-token">{newToken}</pre>
-              <button 
-                className="btn btn-outline-primary"
-                onClick={() => {
-                  navigator.clipboard.writeText(newToken);
-                }}
-                style={{ marginTop: '10px' }}
-              >
-                Copy to Clipboard
-              </button>
-            </div>
-          </div>
+        {/* Tab 2: Sign Token */}
+        {currentTab === 1 && (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Signing Configuration
+                </Typography>
+                
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel id="algorithm-select-label">Signing Algorithm</InputLabel>
+                      <Select
+                        labelId="algorithm-select-label"
+                        value={algorithm}
+                        label="Signing Algorithm"
+                        onChange={handleAlgorithmChange}
+                      >
+                        {algorithms.map((alg) => (
+                          <MenuItem key={alg} value={alg}>
+                            {alg}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                        {getAlgorithmHelp(algorithm)}
+                      </Typography>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ position: 'relative' }}>
+                      <TextField
+                        label={algorithm === 'none' ? 'Secret (optional)' : 'Secret'}
+                        variant="outlined"
+                        fullWidth
+                        multiline
+                        rows={4}
+                        value={secret}
+                        onChange={handleSecretChange}
+                        placeholder={algorithm.startsWith('RS') || algorithm.startsWith('ES') ? 
+                          '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----' : 
+                          'your-secret-key'}
+                        disabled={algorithm === 'none'}
+                        sx={{ mb: 1 }}
+                      />
+                      <Chip
+                        icon={<HelpOutlineIcon />}
+                        label={secretHelp()}
+                        variant="outlined"
+                        size="small"
+                        sx={{ mt: 1 }}
+                      />
+                    </Box>
+                  </Grid>
+                </Grid>
+                
+                <Divider sx={{ my: 3 }} />
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Button 
+                    variant="outlined"
+                    onClick={() => setCurrentTab(0)}
+                  >
+                    Back to Editor
+                  </Button>
+                  
+                  <Button 
+                    variant="contained" 
+                    color="primary"
+                    onClick={generateToken}
+                    disabled={loading || (!secret && algorithm !== 'none')}
+                    endIcon={loading ? <CircularProgress size={20} /> : <PublishIcon />}
+                  >
+                    {loading ? 'Generating...' : 'Generate Token'}
+                  </Button>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
         )}
-      </div>
-    </div>
+        
+        {/* Tab 3: Result */}
+        {currentTab === 2 && (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Generated Token
+                </Typography>
+                
+                <Alert severity="success" sx={{ mb: 3 }}>
+                  Token successfully created with algorithm: <strong>{algorithm}</strong>
+                </Alert>
+                
+                <Box 
+                  sx={{ 
+                    position: 'relative',
+                    mb: 3,
+                    p: 3,
+                    bgcolor: 'background.default',
+                    borderRadius: 2,
+                    overflowWrap: 'break-word',
+                    fontFamily: 'monospace',
+                    fontSize: '14px'
+                  }}
+                >
+                  {modifiedToken}
+                  
+                  <CopyToClipboard text={modifiedToken} onCopy={handleCopy}>
+                    <Button 
+                      startIcon={copied ? <CheckCircleIcon /> : <ContentCopyIcon />}
+                      variant="contained"
+                      size="small"
+                      sx={{ 
+                        position: 'absolute', 
+                        top: 10, 
+                        right: 10,
+                        bgcolor: copied ? 'success.main' : 'primary.main'  
+                      }}
+                    >
+                      {copied ? 'Copied!' : 'Copy'}
+                    </Button>
+                  </CopyToClipboard>
+                </Box>
+                
+                <Divider sx={{ my: 3 }} />
+                
+                <Box className="jwt-token-display">
+                  <span className="jwt-token-header">{modifiedToken.split('.')[0]}</span>
+                  <span className="jwt-token-dot">.</span>
+                  <span className="jwt-token-payload">{modifiedToken.split('.')[1]}</span>
+                  <span className="jwt-token-dot">.</span>
+                  <span className="jwt-token-signature">{modifiedToken.split('.')[2]}</span>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+                  <Button 
+                    variant="outlined"
+                    onClick={() => setCurrentTab(1)}
+                  >
+                    Back to Signing
+                  </Button>
+                  
+                  <Button 
+                    variant="contained" 
+                    color="primary"
+                    onClick={() => {
+                      setToken(modifiedToken);
+                      decodeToken(modifiedToken);
+                      setCurrentTab(0);
+                    }}
+                  >
+                    Edit This Token
+                  </Button>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        )}
+      </motion.div>
+    </Container>
   );
 };
 

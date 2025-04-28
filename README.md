@@ -20,6 +20,7 @@
 | ⚡ **Performance Testing** | Benchmark JWT processing speed |
 | 📊 **Security Reports** | Generate detailed security assessment reports |
 | 🧪 **Test Suite** | 50+ pre-built test cases for JWT validation |
+| 🎭 **Attack Vectors** | Test various JWT attack vectors (Algorithm Confusion, Brute Force, Key Injection) |
 
 ---
 
@@ -30,28 +31,35 @@
 git clone https://github.com/eshanized/JWTKit.git
 cd JWTKit
 
-# Install dependencies
-npm install
+# Install backend dependencies
 pip install -r requirements.txt
+
+# Install frontend dependencies
+cd frontend
+npm install --legacy-peer-deps
+cd ..
+
+# Start the backend
+python app.py
+
+# Start the frontend (in a new terminal)
+cd frontend
+npm start
 ```
 
 ---
 
-## 🖥️ Live Demo
+## 🖥️ Modern Frontend UI
 
-Experience JWTKit in action!  
-![JWTKit Demo](https://via.placeholder.com/800x500/333333/FFFFFF?text=JWTKit+Demo+Coming+Soon)
+The JWTKit frontend features a modern, responsive UI built with:
 
----
+- **Material UI** - Sleek component library for consistent design
+- **Framer Motion** - Smooth animations for a dynamic feel
+- **Dark/Light Mode** - Toggle between themes for comfortable viewing
+- **Interactive Editors** - Visually edit JWT headers and payloads
+- **Reactive Visualization** - Real-time updates as you modify tokens
 
-## 🛠 Usage
-
-```javascript
-// Example: Verify a JWT token
-const jwt = require('jwtkit');
-const result = jwt.verify(token, secret);
-console.log(result);
-```
+The interface is designed to be intuitive and user-friendly while providing powerful features for both security professionals and developers.
 
 ---
 
@@ -62,6 +70,12 @@ console.log(result);
 - Signature verification with multiple algorithms
 - Expiration and claim validation
 - Issuer and audience checks for token authenticity
+
+### Offensive Security Tools
+- JWT cracking with dictionary attacks
+- Key injection attacks simulation
+- JWKS URL spoofing testing
+- Expiration-bypass techniques
 
 ### Developer Tools
 - JWT generator with customizable payloads
@@ -87,6 +101,7 @@ We welcome contributions! Follow these steps:
 
 - [x] Core JWT analysis  
 - [x] Vulnerability scanning  
+- [x] Modern UI implementation
 - [ ] Mobile app support  
 - [ ] CI/CD integration  
 - [ ] Comprehensive API documentation  
@@ -124,6 +139,7 @@ Project Link: [https://github.com/eshanized/JWTKit](https://github.com/eshanized
 - [JWT.io](https://jwt.io) - JWT standard and tools  
 - [OWASP](https://owasp.org) - Security best practices  
 - [RFC 7519](https://tools.ietf.org/html/rfc7519) - JWT specification  
+- [Material UI](https://mui.com/) - UI component library
 
 ---
 
