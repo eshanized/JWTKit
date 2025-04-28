@@ -40,10 +40,34 @@ echo -e "${BLUE}Installing backend dependencies...${NC}"
 source .venv/bin/activate
 pip install -r requirements.txt || pip install werkzeug==2.2.3 flask==2.2.3 flask-cors==3.0.10 pyjwt==2.6.0 python-multipart==0.0.6 cryptography==40.0.2 requests==2.30.0 sqlalchemy==1.4.40 passlib==1.7.4 python-dotenv==1.0.0 flask-jwt-extended==4.4.4 flask-limiter==3.3.1
 
+# Check for port conflicts (8000 for backend)
+if netstat -tuln | grep -q ":8000 "; then
+    echo -e "${RED}Port 8000 is already in use. Stopping the script.${NC}"
+    exit 1
+fi
+
 # Start backend server in the background
 echo -e "${GREEN}Starting backend server...${NC}"
 python app.py &
 BACKEND_PID=$!
+
+# Wait a moment to ensure the server is running
+sleep 2
+
+# Check if backend is running
+if ! ps -p $BACKEND_PID > /dev/null; then
+    echo -e "${RED}Backend server failed to start. Check the logs for details.${NC}"
+    exit 1
+fi
+
+# Test backend connection
+if ! curl -s http://localhost:8000/ > /dev/null; then
+    echo -e "${RED}Backend server is not responding. Check the logs for details.${NC}"
+    kill $BACKEND_PID 2>/dev/null || true
+    exit 1
+fi
+
+echo -e "${GREEN}Backend server started successfully!${NC}"
 
 # Install frontend dependencies
 echo -e "${BLUE}Installing frontend dependencies...${NC}"
