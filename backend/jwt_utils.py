@@ -366,7 +366,7 @@ class JWTUtils:
                         "key_index": i,
                         "message": "Secret found! Token can be forged."
                     }
-            except:
+            except Exception:
                 continue
         
         return {
